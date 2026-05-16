@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nortal · Playwright Workshop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black:    #2C2C30;
+    --white:    #FFFFFF;
+    --green:    #009638;
+    --green-lt: #E8F5EC;
+    --orange:   #F3743B;
+    --sand:     #E8E7E3;
+    --sand-lt:  #F5F4F1;
+    --muted:    #6B6B70;
+    --border:   #DDDCDA;
+    --code-bg:  #1E1E22;
+    --code-fg:  #E8E7E3;
+    --font-head: 'Inter', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: var(--font-body);
+    background: #1A1A1E;
+    overflow: hidden;
+    color: var(--black);
+  }
+
+  /* DECK */
+  #deck { width: 100vw; height: 100vh; position: relative; }
+
+  /* SLIDES */
+  .slide {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    display: none; flex-direction: column;
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  .slide.active { display: flex; opacity: 1; }
+  .slide.out { display: flex; opacity: 0; pointer-events: none; }
+
+  /* SLIDE INNER */
+  .si {
+    flex: 1; display: flex; flex-direction: column;
+    background: var(--white);
+    position: relative; overflow: hidden;
+  }
+  .slide.dark .si {
+    background: var(--black);
+    color: var(--white);
+  }
+  .slide.sand .si { background: var(--sand-lt); }
+
+  /* HEADER BAR */
+  .sh {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 56px 0;
+    flex-shrink: 0; min-height: 54px;
+  }
+
+  /* NORTAL LOGO — exact brand mark */
+  .nortal-logo {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .nortal-mark {
+    display: flex; align-items: flex-end; gap: 3px;
+  }
+  .nortal-mark span {
+    display: block; width: 5px; border-radius: 2.5px;
+    background: var(--green);
+  }
+  .nortal-mark span:nth-child(1) { height: 12px; }
+  .nortal-mark span:nth-child(2) { height: 20px; }
+  .nortal-mark span:nth-child(3) { height: 8px; }
+  .nortal-mark span:nth-child(4) { height: 16px; }
+  .nortal-word {
+    font-size: 13px; font-weight: 700; letter-spacing: 3px;
+    color: var(--black); text-transform: uppercase;
+  }
+  .slide.dark .nortal-word { color: var(--white); }
+
+  .slide-num {
+    font-size: 12px; color: var(--muted); font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+  .slide.dark .slide-num { color: rgba(255,255,255,0.35); }
+
+  /* FOOTER */
+  .sf {
+    padding: 0 56px 16px;
+    font-size: 12px; color: var(--muted);
+    flex-shrink: 0;
+  }
+  .slide.dark .sf { color: rgba(255,255,255,0.3); }
+
+  /* CONTENT AREA */
+  .sc {
+    flex: 1; padding: 24px 56px 10px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* TYPOGRAPHY */
+  h1 {
+    font-family: var(--font-head);
+    font-size: clamp(30px, 4.5vw, 58px);
+    font-weight: 700; letter-spacing: -1px;
+    line-height: 1.05; color: var(--black);
+    margin-bottom: 10px;
+  }
+  .slide.dark h1 { color: var(--white); }
+  h1 em { color: var(--green); font-style: normal; }
+
+  h2 {
+    font-size: clamp(13px, 1.4vw, 17px);
+    font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--green);
+    margin-bottom: 20px;
+  }
+
+  h3 {
+    font-size: clamp(15px, 1.6vw, 20px);
+    font-weight: 600; color: var(--black);
+    margin-bottom: 8px; margin-top: 0;
+  }
+  .slide.dark h3 { color: var(--white); }
+
+  p {
+    font-size: clamp(14px, 1.4vw, 18px);
+    line-height: 1.65; color: #3C3C42;
+    font-weight: 300;
+  }
+  .slide.dark p { color: rgba(255,255,255,0.75); }
+
+  ul { list-style: none; padding: 0; }
+  li {
+    font-size: clamp(13px, 1.35vw, 17px);
+    line-height: 1.6; color: #3C3C42;
+    padding: 4px 0 4px 20px; position: relative;
+    font-weight: 300;
+  }
+  li::before {
+    content: ''; position: absolute; left: 0; top: 13px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+  }
+  .slide.dark li { color: rgba(255,255,255,0.7); }
+  .slide.dark li::before { background: var(--green); }
+
+  a { color: var(--green); text-decoration: none; border-bottom: 1px solid rgba(0,150,56,0.3); }
+
+  code {
+    font-family: var(--font-mono);
+    background: var(--sand); color: var(--black);
+    padding: 2px 7px; border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .slide.dark code { background: rgba(255,255,255,0.1); color: var(--sand); }
+
+  pre {
+    font-family: var(--font-mono);
+    background: var(--code-bg); color: var(--code-fg);
+    padding: 18px 22px; border-radius: 6px;
+    font-size: clamp(10px, 1.1vw, 13px);
+    line-height: 1.65;
+    border-left: 3px solid var(--green);
+    overflow: auto; flex-shrink: 0;
+  }
+  pre code { background: transparent; color: inherit; padding: 0; }
+  .kw { color: #F3743B; }
+  .fn { color: #C792EA; }
+  .str { color: #A5E6BA; }
+  .cmt { color: #636369; }
+  .num { color: #F3743B; }
+  .ok  { color: var(--green); }
+
+  /* TABLE */
+  table { border-collapse: collapse; width: 100%; font-size: clamp(12px, 1.25vw, 15px); }
+  th {
+    background: var(--black); color: var(--white);
+    padding: 10px 14px; text-align: left;
+    font-weight: 600; font-size: clamp(11px, 1.1vw, 13px);
+    text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: #3C3C42; font-weight: 300; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: var(--sand-lt); }
+  td code { font-size: 0.9em; }
+
+  /* COLUMNS */
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; flex: 1; align-items: start; }
+  .cols3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; flex: 1; }
+  .col { display: flex; flex-direction: column; gap: 8px; }
+
+  /* CARD */
+  .card {
+    background: var(--sand-lt); border: 1px solid var(--border);
+    border-radius: 8px; padding: 20px 22px;
+  }
+  .card.green { border-left: 3px solid var(--green); }
+  .card.orange { border-left: 3px solid var(--orange); }
+  .card h3 { font-size: clamp(14px, 1.5vw, 18px); margin-bottom: 6px; }
+
+  /* BADGE */
+  .badge {
+    display: inline-block; padding: 3px 10px;
+    border-radius: 3px; font-size: 12px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .badge.easy   { background: var(--green); color: white; }
+  .badge.medium { background: var(--orange); color: white; }
+  .badge.hard   { background: var(--black); color: white; }
+  .badge.tool   { background: var(--sand); color: var(--black); }
+
+  /* BLOCKQUOTE */
+  blockquote {
+    border-left: 3px solid var(--green);
+    background: var(--green-lt);
+    padding: 12px 18px; border-radius: 0 6px 6px 0;
+    margin-top: 12px;
+  }
+  blockquote p { color: var(--black); font-size: clamp(13px, 1.3vw, 16px); font-weight: 400; }
+
+  /* COVER SPECIFICS */
+  .cover-eyebrow {
+    font-size: clamp(11px, 1.1vw, 14px);
+    font-weight: 600; text-transform: uppercase;
+    letter-spacing: 2px; color: var(--green);
+    margin-bottom: 16px;
+  }
+  .cover-sub {
+    font-size: clamp(15px, 1.8vw, 22px);
+    color: rgba(255,255,255,0.6); font-weight: 300;
+    margin-top: 16px; line-height: 1.5;
+  }
+  .stats {
+    display: flex; gap: 32px; margin-top: 32px;
+  }
+  .stat-item {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .stat-num {
+    font-size: clamp(22px, 3vw, 40px); font-weight: 700;
+    color: var(--white); line-height: 1;
+  }
+  .stat-label {
+    font-size: 12px; color: rgba(255,255,255,0.45);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  /* ROOM CARDS */
+  .room-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 20px; margin-top: 8px;
+  }
+  .room-card {
+    border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 22px 24px; background: var(--white);
+    transition: border-color 0.2s;
+  }
+  .room-card:hover { border-color: var(--green); }
+  .room-icon {
+    font-size: 28px; margin-bottom: 12px;
+    display: block;
+  }
+  .room-card h3 { font-size: clamp(15px, 1.6vw, 19px); margin-bottom: 6px; }
+  .room-tools {
+    font-size: 12px; color: var(--muted);
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+  }
+
+  /* LEVEL CARDS */
+  .level-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px; flex: 1;
+  }
+  .level-card {
+    border-radius: 6px; padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .level-card.easy   { background: var(--green-lt); border: 1px solid rgba(0,150,56,0.2); }
+  .level-card.medium { background: #FEF3ED; border: 1px solid rgba(243,116,59,0.2); }
+  .level-card.hard   { background: var(--sand-lt); border: 1px solid var(--border); }
+
+  /* STEP PAIRS demo */
+  .step-pair { margin-bottom: 10px; }
+  .step-action {
+    background: var(--sand-lt); border-left: 3px solid var(--black);
+    padding: 8px 12px; font-size: clamp(11px, 1.1vw, 13px);
+    font-family: var(--font-mono); border-radius: 0 4px 4px 0;
+    color: var(--black);
+  }
+  .step-result {
+    background: var(--green-lt); border-left: 3px solid var(--green);
+    padding: 8px 12px; font-size: clamp(11px, 1.1vw, 13px);
+    font-family: var(--font-mono); border-radius: 0 4px 4px 0;
+    color: var(--black); margin-top: 3px;
+  }
+
+  /* CLOSING */
+  .closing-big {
+    font-size: clamp(60px, 10vw, 120px);
+    font-weight: 700; color: var(--white);
+    line-height: 1; letter-spacing: -3px;
+  }
+  .closing-big em { color: var(--green); font-style: normal; }
+
+  /* PROGRESS BAR */
+  #progress {
+    position: fixed; top: 0; left: 0; height: 2px;
+    background: var(--green); transition: width 0.3s ease;
+    z-index: 200;
+  }
+
+  /* NAV */
+  #nav {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(44,44,48,0.92); backdrop-filter: blur(12px);
+    padding: 9px 16px; border-radius: 50px;
+    border: 1px solid rgba(255,255,255,0.08);
+    z-index: 100;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .nb {
+    background: none; border: none; cursor: pointer;
+    color: rgba(255,255,255,0.7); font-size: 16px;
+    padding: 4px 8px; border-radius: 6px;
+    transition: all 0.15s; line-height: 1;
+  }
+  .nb:hover { background: rgba(255,255,255,0.1); color: white; }
+  .nb:disabled { opacity: 0.25; cursor: default; }
+  #sc {
+    color: rgba(255,255,255,0.6); font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    min-width: 52px; text-align: center;
+    font-family: var(--font-mono);
+  }
+  .dots { display: flex; gap: 4px; align-items: center; }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(255,255,255,0.25); cursor: pointer;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .dot.on { background: var(--green); width: 16px; border-radius: 3px; }
+
+  /* FS BTN */
+  #fsb {
+    position: fixed; top: 16px; right: 16px;
+    background: rgba(44,44,48,0.8); border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.6); padding: 6px 10px; border-radius: 6px;
+    cursor: pointer; font-size: 13px; backdrop-filter: blur(8px);
+    z-index: 100; transition: all 0.15s;
+  }
+  #fsb:hover { background: rgba(44,44,48,0.95); color: white; }
+
+  /* KEY HINT */
+  #hint {
+    position: fixed; bottom: 72px; right: 18px;
+    color: rgba(255,255,255,0.2); font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+
+  /* DIVIDER */
+  .divider {
+    width: 40px; height: 3px; background: var(--green);
+    border-radius: 2px; margin: 12px 0;
+  }
+
+  /* TESTRAIL STEPS VISUAL */
+  .tr-table { border-collapse: collapse; width: 100%; }
+  .tr-table th {
+    background: var(--black); color: white;
+    padding: 8px 12px; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1px;
+    text-align: left;
+  }
+  .tr-table td {
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    font-size: clamp(11px, 1.1vw, 13px); color: var(--black);
+    font-weight: 300;
+  }
+  .tr-table tr:nth-child(even) td { background: var(--sand-lt); }
+
+  /* DEMO SLIDE */
+  .demo-box {
+    background: var(--code-bg); border-radius: 8px;
+    padding: 20px 24px; border: 1px solid rgba(255,255,255,0.06);
+    position: relative; overflow: hidden;
+  }
+  .demo-box::before {
+    content: 'LIVE DEMO';
+    position: absolute; top: 12px; right: 16px;
+    font-size: 10px; font-weight: 700; letter-spacing: 2px;
+    color: var(--green); font-family: var(--font-mono);
+  }
+  .terminal-line {
+    font-family: var(--font-mono); font-size: clamp(11px, 1.1vw, 13px);
+    line-height: 1.8; color: var(--code-fg);
+  }
+  .terminal-prompt { color: var(--green); }
+  .terminal-comment { color: #636369; }
+  .terminal-out { color: #A5E6BA; }
+
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<button id="fsb" onclick="toggleFS()">⛶</button>
+<div id="hint">← → Leertaste</div>
+<div id="deck">
+
+  <!-- 1. COVER -->
+  <div class="slide dark active" id="s1">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark">
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+      </div>
+      <div class="sc" style="justify-content:center; padding-top:0;">
+        <div class="cover-eyebrow">QA Automation · 2025</div>
+        <h1 style="font-size:clamp(42px,6.5vw,82px); color:white;">
+          Playwright<br><em>Workshop</em>
+        </h1>
+        <p class="cover-sub">Vom manuellen Testfall zum automatisierten Regression-Test</p>
+        <div class="stats">
+          <div class="stat-item">
+            <span class="stat-num">90</span>
+            <span class="stat-label">Minuten</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num">2</span>
+            <span class="stat-label">Räume</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num">3</span>
+            <span class="stat-label">Schwierigkeiten</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num">1</span>
+            <span class="stat-label">Workflow</span>
+          </div>
+        </div>
+      </div>
+      <div class="sf">Nortal · Playwright Workshop · 2025</div>
+    </div>
+  </div>
+
+  <!-- 2. AGENDA -->
+  <div class="slide" id="s2">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">02 / 19</span>
+      </div>
+      <div class="sc">
+        <h2>Ablauf</h2>
+        <h1>Agenda</h1>
+        <div style="flex:1; margin-top:16px;">
+          <table>
+            <tr><th>Zeit</th><th>Aktivität</th><th>Wo</th></tr>
+            <tr><td><strong>0 – 10 Min</strong></td><td>Intro, Konzept, Live-Demo Coverage Planner</td><td>Hauptraum</td></tr>
+            <tr><td><strong>10 – 70 Min</strong></td><td>Hauptübung — Codegen + AI Cleanup + Tests ausführen</td><td>Breakout-Räume</td></tr>
+            <tr><td><strong>70 – 80 Min</strong></td><td>Showcase — jeder Raum zeigt 2 Minuten</td><td>Hauptraum</td></tr>
+            <tr><td><strong>80 – 83 Min</strong></td><td>Demo: TestRail Push live</td><td>Hauptraum</td></tr>
+            <tr><td><strong>83 – 86 Min</strong></td><td>Demo: Self-Healing Test</td><td>Hauptraum</td></tr>
+            <tr><td><strong>86 – 90 Min</strong></td><td>Reframe + Nächste Schritte + Ressourcen</td><td>Hauptraum</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 3. DAS KONZEPT -->
+  <div class="slide" id="s3">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">03 / 19</span>
+      </div>
+      <div class="sc">
+        <h2>Das Konzept</h2>
+        <h1>Eine Disziplin.<br><em style="color:var(--green);">Zwei Ergebnisse.</em></h1>
+        <div class="divider"></div>
+        <div class="cols" style="margin-top:8px;">
+          <div class="col">
+            <p>Wir schreiben Tests mit klar benannten <code>test.step()</code>-Blöcken. Jeder Aktions-Schritt wird sofort von einem Ergebnis-Schritt gefolgt.</p>
+            <p style="margin-top:12px;">Diese Namen dienen zwei Zwecken gleichzeitig:</p>
+            <ul style="margin-top:10px;">
+              <li><strong>Playwright Trace</strong> — lesbar im Report und im Debugger</li>
+              <li><strong>TestRail Testfall</strong> — automatisch exportierbar</li>
+            </ul>
+          </div>
+          <div class="col">
+            <div class="step-pair">
+              <div class="step-action">Der Benutzer klickt auf "Login".</div>
+              <div class="step-result">Die Produktseite wird angezeigt.</div>
+            </div>
+            <div class="step-pair">
+              <div class="step-action">Der Benutzer legt "Backpack" in den Warenkorb.</div>
+              <div class="step-result">Das Warenkorb-Symbol zeigt die Anzahl 1 an.</div>
+            </div>
+            <blockquote><p>Aktion → Ergebnis. Immer in Paaren. Immer auf Deutsch.</p></blockquote>
+          </div>
+        </div>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 4. AKTION → ERGEBNIS CODE -->
+  <div class="slide" id="s4">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">04 / 19</span>
+      </div>
+      <div class="sc">
+        <h2>Aktion → Ergebnis</h2>
+        <h1>Im Code &amp; in TestRail</h1>
+        <div class="cols" style="margin-top:16px;">
+          <div class="col">
+            <h3>TypeScript</h3>
+            <pre><code><span class="kw">await</span> test.<span class="fn">step</span>(
+  <span class="str">'Der Benutzer klickt auf "Login".'</span>,
+  <span class="kw">async</span> () => {
+    <span class="kw">await</span> page
+      .<span class="fn">getByRole</span>(<span class="str">'button'</span>, { name: <span class="str">'Login'</span> })
+      .<span class="fn">click</span>();
+  });
+
+<span class="kw">await</span> test.<span class="fn">step</span>(
+  <span class="str">'Die Produktseite wird angezeigt.'</span>,
+  <span class="kw">async</span> () => {
+    <span class="kw">await</span> expect(page)
+      .<span class="fn">toHaveURL</span>(<span class="str">/inventory/</span>);
+  });</code></pre>
+          </div>
+          <div class="col">
+            <h3>TestRail</h3>
+            <table class="tr-table">
+              <tr><th>Schritt</th><th>Erwartetes Ergebnis</th></tr>
+              <tr><td>Der Benutzer klickt auf "Login".</td><td>Die Produktseite wird angezeigt.</td></tr>
+              <tr><td>Der Benutzer legt "Backpack" in den Warenkorb.</td><td>Das Warenkorb-Symbol zeigt 1 an.</td></tr>
+            </table>
+            <blockquote style="margin-top:12px;"><p>Dieselben Schritt-Namen. Automatisch generiert — kein manuelles Kopieren.</p></blockquote>
+          </div>
+        </div>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 5. KI ECOSYSTEM -->
+  <div class="slide" id="s5">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">05 / 19</span>
+      </div>
+      <div class="sc">
+        <h2>KI-Ökosystem</h2>
+        <h1>Was ihr heute braucht</h1>
+        <div class="cols" style="margin-top:16px;">
+          <div class="col">
+            <table>
+              <tr><th>Tool</th><th>Typ</th><th>Wofür</th></tr>
+              <tr><td><strong>Claude Code</strong></td><td>Coding Agent</td><td>Facilitator-Demo</td></tr>
+              <tr><td><strong>Cursor</strong></td><td>Editor + AI</td><td>Hands-on Übungen</td></tr>
+              <tr><td><strong>GitHub Copilot</strong></td><td>Editor + AI</td><td>Hands-on Übungen</td></tr>
+              <tr><td><strong>ChatGPT / Claude</strong></td><td>Chat</td><td>Prompts — auch okay</td></tr>
+            </table>
+            <blockquote style="margin-top:16px;">
+              <p>Cursor, Copilot und ChatGPT nutzen dieselben Modelle im Hintergrund. <strong>Wählt in Cursor explizit ein Modell aus</strong> — nicht Auto-Modus.</p>
+            </blockquote>
+          </div>
+          <div class="col">
+            <div class="card green" style="margin-bottom:14px;">
+              <h3 style="color:var(--green); font-size:15px; margin-bottom:4px;">Wichtigster Satz heute</h3>
+              <p style="font-size:clamp(14px,1.5vw,18px); font-weight:400; color:var(--black);">"Nicht das Tool ist entscheidend — der Prompt ist entscheidend."</p>
+            </div>
+            <div class="card">
+              <h3 style="font-size:15px; margin-bottom:4px;">Claude Modelle</h3>
+              <ul>
+                <li><strong>Haiku</strong> — leichte Aufgaben</li>
+                <li><strong>Sonnet</strong> — Alltag, reicht für Playwright</li>
+                <li><strong>Opus</strong> — Demo heute (komplexe Tasks)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 6. LIVE DEMO 1: COVERAGE PLANNER -->
+  <div class="slide dark" id="s6">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">06 / 19</span>
+      </div>
+      <div class="sc">
+        <h2 style="color:var(--green);">Live-Demo 1</h2>
+        <h1>Coverage Planner</h1>
+        <div class="demo-box" style="margin-top:16px; flex:1;">
+          <div class="terminal-line">
+            <span class="terminal-comment"># Ein Satz → vollständiger Test-Plan mit Edge Cases</span>
+          </div>
+          <div class="terminal-line" style="margin-top:10px;">
+            <span class="terminal-prompt">$</span> <span style="color:#C792EA;">/pw-coverage-planner</span>
+          </div>
+          <div class="terminal-line" style="color:rgba(255,255,255,0.5); margin-top:8px; font-size:0.95em;">
+            "Der Benutzer meldet sich an, sortiert Produkte nach<br>
+            &nbsp;Preis aufsteigend, legt das günstigste in den Warenkorb,<br>
+            &nbsp;schließt den Checkout ab."
+          </div>
+          <div class="terminal-line" style="margin-top:14px; color:rgba(255,255,255,0.3);">→ Claude Code analysiert saucedemo.com ...</div>
+          <div class="terminal-line" style="color:rgba(255,255,255,0.3);">→ 2 Sub-Agents erkunden parallel die Anwendung ...</div>
+          <div class="terminal-line" style="margin-top:10px;">
+            <span class="terminal-out">✓ Happy Path: Login → Sortieren → Warenkorb → Checkout</span>
+          </div>
+          <div class="terminal-line"><span class="terminal-out">✓ Edge Case: Duplikat im Warenkorb</span></div>
+          <div class="terminal-line"><span class="terminal-out">✓ Edge Case: Checkout ohne Produkte</span></div>
+          <div class="terminal-line"><span class="terminal-out">✓ Negativ: Leere Pflichtfelder im Checkout</span></div>
+          <div class="terminal-line"><span class="terminal-out">✓ Negativ: Ungültige Zahlungsdaten</span></div>
+          <div class="terminal-line" style="color:rgba(255,255,255,0.3); margin-top:8px;">→ Plan gespeichert: .claude/pw-plan/checkout-coverage.md</span></div>
+        </div>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 7. ZWEI RÄUME -->
+  <div class="slide" id="s7">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">07 / 19</span>
+      </div>
+      <div class="sc">
+        <h2>Breakouts</h2>
+        <h1>Zwei Räume</h1>
+        <div class="room-grid" style="flex:1; margin-top:16px;">
+          <div class="room-card">
+            <span class="room-icon">💻</span>
+            <span class="badge tool">Raum A</span>
+            <h3>Cursor · Copilot · ChatGPT</h3>
+            <p style="font-size:clamp(13px,1.3vw,16px);">Codegen aufzeichnen, AI bereinigt und vervollständigt. Alle Aufgaben vollständig lösbar.</p>
+            <div class="room-tools">npx playwright codegen · Cursor · beliebiges AI-Chat</div>
+          </div>
+          <div class="room-card">
+            <span class="room-icon">⚡</span>
+            <span class="badge tool">Raum B</span>
+            <h3>Claude Code</h3>
+            <p style="font-size:clamp(13px,1.3vw,16px);">Skills-basierter Workflow. <code>/nortal-new-test</code>, <code>/nortal-test-audit</code>, Plan Mode für Senior-Tasks.</p>
+            <div class="room-tools">claude · /nortal-new-test · /nortal-test-audit</div>
+          </div>
+        </div>
+        <blockquote style="margin-top:14px;"><p>Gleiche Aufgaben. Gleiche Ergebnisse. Unterschiedliche Tools und Aufwand — das ist die Lektion.</p></blockquote>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 8. EXERCISE: EINFACH -->
+  <div class="slide sand" id="s8">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">08 / 19</span>
+      </div>
+      <div class="sc">
+        <h2>Aufgabe 1</h2>
+        <span class="badge easy">Einfach</span>
+        <h1 style="margin-top:8px;">Anmeldung</h1>
+        <p style="margin-top:8px;"><strong>Datei:</strong> <code>tests/01-anmeldung/assignment.spec.ts</code></p>
+        <div class="cols" style="margin-top:14px;">
+          <div class="col">
+            <div class="card green">
+              <h3 style="font-size:15px;">Test 1 — Fertig geschrieben</h3>
+              <p style="font-size:13px;">Ausführen, lesen, Trace öffnen. Jede Zeile verstehen.</p>
+              <pre style="margin-top:10px; font-size:11px;"><code>npx playwright test \
+  tests/01-anmeldung/ --ui</code></pre>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card orange">
+              <h3 style="font-size:15px;">Test 2 — Codegen oder AI</h3>
+              <p style="font-size:13px;">Szenario: Falsches Passwort → Fehlermeldung</p>
+              <pre style="margin-top:10px; font-size:11px;"><code><span class="cmt"># Codegen aufzeichnen:</span>
+npx playwright codegen \
+  https://www.saucedemo.com
+
+<span class="cmt"># AI-Prompt im File</span></code></pre>
+            </div>
+          </div>
+        </div>
+        <blockquote style="margin-top:10px;"><p>Die Assertions am Ende sind bereits fertig — nicht verändern.</p></blockquote>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 9. EXERCISE: MITTEL -->
+  <div class="slide sand" id="s9">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">09 / 19</span>
+      </div>
+      <div class="sc">
+        <h2>Aufgabe 2</h2>
+        <span class="badge medium">Mittel</span>
+        <h1 style="margin-top:8px;">Warenkorb</h1>
+        <p style="margin-top:8px;"><strong>Datei:</strong> <code>tests/02-warenkorb/assignment.spec.ts</code></p>
+        <div class="cols" style="margin-top:14px;">
+          <div class="col">
+            <div class="card green">
+              <h3 style="font-size:15px;">Test 1 — Fertig geschrieben</h3>
+              <p style="font-size:13px;">Login → Produkt in den Warenkorb → Warenkorb öffnen → Produkt sichtbar</p>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card orange">
+              <h3 style="font-size:15px;">Test 2 — Codegen oder AI</h3>
+              <p style="font-size:13px;">Szenario: 2 Produkte hinzufügen → 1 entfernen → Badge zeigt 1</p>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:14px;">
+          <h3 style="font-size:15px; margin-bottom:8px;">Regel: Jeder Aktions-Schritt direkt von Ergebnis-Schritt gefolgt</h3>
+          <div class="step-pair">
+            <div class="step-action">Der Benutzer klickt auf "Add to cart" bei "Sauce Labs Backpack".</div>
+            <div class="step-result">Das Warenkorb-Symbol zeigt die Anzahl 1 an.</div>
+          </div>
+        </div>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 10. EXERCISE: SCHWER -->
+  <div class="slide sand" id="s10">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">10 / 19</span>
+      </div>
+      <div class="sc">
+        <h2>Aufgabe 3</h2>
+        <span class="badge hard">Schwer</span>
+        <h1 style="margin-top:8px;">Checkout</h1>
+        <p style="margin-top:8px;"><strong>Datei:</strong> <code>tests/03-checkout/assignment.spec.ts</code></p>
+        <div class="cols" style="margin-top:14px;">
+          <div class="col">
+            <div class="card">
+              <h3 style="font-size:15px;">Test 1 — Szenario vorgegeben</h3>
+              <p style="font-size:13px;">Günstigstes Produkt sortieren, Checkout abschließen, Gesamtpreis prüfen. Code selbst schreiben.</p>
+              <p style="font-size:12px; color:var(--muted); margin-top:8px;">Claude Code: Plan Mode empfohlen</p>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card">
+              <h3 style="font-size:15px;">Test 2 — Eigener Test</h3>
+              <p style="font-size:13px;">Szenario selbst definieren. Schau dir saucedemo.com an — was ist kritisch? Was kann schiefgehen?</p>
+              <p style="font-size:12px; color:var(--muted); margin-top:8px;">Optional: echtes Projekt statt saucedemo</p>
+            </div>
+          </div>
+        </div>
+        <blockquote style="margin-top:14px;"><p>Kein vorgegebener Codegen-Pfad. Nur die Regel: Aktion → Ergebnis, immer in Paaren.</p></blockquote>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 11. COMMANDS -->
+  <div class="slide" id="s11">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">11 / 19</span>
+      </div>
+      <div class="sc">
+        <h2>Referenz</h2>
+        <h1>Schnellstart-Befehle</h1>
+        <div class="cols" style="margin-top:16px;">
+          <div class="col">
+            <table>
+              <tr><th>Befehl</th><th>Was es macht</th></tr>
+              <tr><td><code>npm run test:ui</code></td><td>UI-Modus — empfohlen</td></tr>
+              <tr><td><code>npm run test:headed</code></td><td>Browser sichtbar</td></tr>
+              <tr><td><code>npm run report</code></td><td>HTML-Report öffnen</td></tr>
+              <tr><td><code>npm run codegen</code></td><td>Interaktionen aufzeichnen</td></tr>
+              <tr><td><code>npm run test:debug</code></td><td>Schritt-für-Schritt</td></tr>
+            </table>
+          </div>
+          <div class="col">
+            <h3>Saucedemo Test-Accounts</h3>
+            <table>
+              <tr><th>User</th><th>Hinweis</th></tr>
+              <tr><td><code>standard_user</code></td><td>✓ Diesen verwenden</td></tr>
+              <tr><td><code>locked_out_user</code></td><td>Wird gesperrt</td></tr>
+              <tr><td><code>problem_user</code></td><td>UI-Fehler absichtlich</td></tr>
+            </table>
+            <p style="font-size:12px; color:var(--muted); margin-top:8px;">Passwort immer: <code>secret_sauce</code></p>
+          </div>
+        </div>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 12. TESTRAIL EXPORT -->
+  <div class="slide" id="s12">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">12 / 19</span>
+      </div>
+      <div class="sc">
+        <h2>TestRail Integration</h2>
+        <h1>3 Befehle. 1 Ergebnis.</h1>
+        <div class="cols" style="margin-top:14px;">
+          <div class="col">
+            <pre><code><span class="cmt"># 1. Eigenen Abschnitt anlegen</span>
+<span class="ok">npx tsx</span> scripts/testrail/add-section.ts \
+  <span class="str">"Anna_Zhadova"</span>
+<span class="cmt">→ ✅ Section created: id=58988</span>
+<span class="cmt">→ TR_SECTION_ID=58988 in .env setzen</span>
+
+<span class="cmt"># 2. Testfall-Datei generieren</span>
+<span class="ok">npx tsx</span> scripts/testrail/generate-cases.ts \
+  tests/01-anmeldung/assignment.spec.ts \
+  --out scripts/testrail/cases/Anna/login.ts
+
+<span class="cmt"># 3. Nach TestRail übertragen</span>
+<span class="ok">npx tsx</span> scripts/testrail/create-case.ts \
+  scripts/testrail/cases/Anna/login.ts
+<span class="ok">→ ✅ Created C1234 — Anmeldung mit gueltigen Zugangsdaten</span></code></pre>
+          </div>
+          <div class="col">
+            <h3 style="margin-bottom:10px;">Ergebnis in TestRail</h3>
+            <div style="background:var(--sand-lt); border:1px solid var(--border); border-radius:6px; padding:14px; font-size:13px;">
+              <p style="font-family:var(--font-mono); font-size:12px; color:var(--muted); margin-bottom:8px;">Suite: Playwright Workshop 2025</p>
+              <p style="font-family:var(--font-mono); font-size:12px; color:var(--muted);">└── Anna_Zhadova/</p>
+              <p style="font-family:var(--font-mono); font-size:12px; color:var(--green); padding-left:16px;">├── C1234  Anmeldung mit gueltigen Zugangsdaten</p>
+              <p style="font-family:var(--font-mono); font-size:12px; color:var(--green); padding-left:16px;">└── C1235  Fehlermeldung bei falschem Passwort</p>
+            </div>
+            <table class="tr-table" style="margin-top:12px;">
+              <tr><th>Schritt</th><th>Ergebnis</th></tr>
+              <tr><td>Navigiert zu saucedemo.com</td><td>Login-Seite sichtbar</td></tr>
+              <tr><td>Gibt "standard_user" ein</td><td>Feld befüllt</td></tr>
+              <tr><td>Klickt auf "Login"</td><td>Weiterleitung /inventory</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 13. DEMO 2: TESTRAIL LIVE -->
+  <div class="slide dark" id="s13">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">13 / 19</span>
+      </div>
+      <div class="sc">
+        <h2 style="color:var(--green);">Live-Demo 2</h2>
+        <h1>TestRail Push</h1>
+        <div class="demo-box" style="margin-top:16px; flex:1;">
+          <div class="terminal-line"><span class="terminal-comment"># Showcased test from Room A → TestRail live</span></div>
+          <div class="terminal-line" style="margin-top:10px;">
+            <span class="terminal-prompt">$</span> npx tsx scripts/testrail/generate-cases.ts \
+          </div>
+          <div class="terminal-line" style="padding-left:20px; color:rgba(255,255,255,0.6);">
+            tests/01-anmeldung/assignment.spec.ts \
+          </div>
+          <div class="terminal-line" style="padding-left:20px; color:rgba(255,255,255,0.6);">
+            --out scripts/testrail/cases/Workshop_Live/login.ts
+          </div>
+          <div class="terminal-line" style="margin-top:8px; color:rgba(255,255,255,0.4);">→ Parsing test.step() names ...</div>
+          <div class="terminal-line" style="margin-top:8px;">
+            <span class="terminal-prompt">$</span> npx tsx scripts/testrail/create-case.ts \
+          </div>
+          <div class="terminal-line" style="padding-left:20px; color:rgba(255,255,255,0.6);">
+            scripts/testrail/cases/Workshop_Live/login.ts
+          </div>
+          <div class="terminal-line" style="margin-top:10px;">
+            <span class="terminal-out">✅ Created C1234 — Anmeldung mit gueltigen Zugangsdaten</span>
+          </div>
+          <div class="terminal-line">
+            <span class="terminal-out">✅ Created C1235 — Fehlermeldung bei falschem Passwort</span>
+          </div>
+          <div class="terminal-line" style="margin-top:12px; color:rgba(255,255,255,0.35); font-size:12px;">
+            → Jetzt in TestRail sichtbar: Workshop_Live / C1234, C1235
+          </div>
+        </div>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 14. DEMO 3: SELF-HEALING -->
+  <div class="slide dark" id="s14">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">14 / 19</span>
+      </div>
+      <div class="sc">
+        <h2 style="color:var(--orange);">Live-Demo 3</h2>
+        <h1>Self-Healing Test</h1>
+        <div class="demo-box" style="margin-top:16px; flex:1;">
+          <div class="terminal-line"><span class="terminal-comment"># Absichtlich kaputt gemachter Locator → AI repariert</span></div>
+          <div class="terminal-line" style="margin-top:10px;">
+            <span class="terminal-prompt">$</span> npx playwright test tests/01-anmeldung/ --trace on
+          </div>
+          <div class="terminal-line" style="margin-top:6px; color:#F3743B;">
+            ✗  1 failed — Anmeldung mit gueltigen Zugangsdaten
+          </div>
+          <div class="terminal-line" style="color:rgba(255,255,255,0.4); font-size:12px;">
+            &nbsp;&nbsp;Locator '.title' resolved to 0 elements
+          </div>
+          <div class="terminal-line" style="margin-top:14px; color:rgba(255,255,255,0.5);">
+            → "Debug this failing test for me."
+          </div>
+          <div class="terminal-line" style="margin-top:8px; color:rgba(255,255,255,0.4);">→ Reading trace file ...</div>
+          <div class="terminal-line" style="color:rgba(255,255,255,0.4);">→ Analyzing screenshots and action log ...</div>
+          <div class="terminal-line" style="color:rgba(255,255,255,0.4);">→ Source code check: .title → h3.title ...</div>
+          <div class="terminal-line" style="margin-top:8px;">
+            <span class="terminal-out">→ Fixed: locator('.title') → getByRole('heading', {name:'Products'})</span>
+          </div>
+          <div class="terminal-line" style="margin-top:8px;">
+            <span class="terminal-prompt">$</span> npx playwright test tests/01-anmeldung/
+          </div>
+          <div class="terminal-line">
+            <span class="terminal-out">✓  2 passed</span>
+          </div>
+        </div>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 15. REFRAME -->
+  <div class="slide" id="s15">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">15 / 19</span>
+      </div>
+      <div class="sc">
+        <h2>Takeaway</h2>
+        <h1>Was ihr heute gelernt habt</h1>
+        <div class="divider"></div>
+        <div class="cols" style="margin-top:16px;">
+          <div class="col">
+            <div class="card green">
+              <h3 style="color:var(--green); font-size:15px; margin-bottom:6px;">Nicht nur Playwright</h3>
+              <p style="font-size:clamp(13px,1.3vw,16px);">Ihr habt gelernt wie man AI für QA <strong>diszipliniert anweist</strong>. Action/Result-Paare. Klare Step-Namen. Strukturierte Prompts.</p>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card">
+              <h3 style="font-size:15px; margin-bottom:6px;">Tool-agnostisch</h3>
+              <p style="font-size:clamp(13px,1.3vw,16px);">Diese Disziplin funktioniert mit jedem Tool das ihr habt — und mit jedem Tool das in den nächsten zwei Jahren auf den Markt kommt.</p>
+            </div>
+          </div>
+        </div>
+        <blockquote style="margin-top:16px;">
+          <p style="font-size:clamp(15px,1.6vw,20px); font-weight:500; color:var(--black);">"Der Prompt ist die Skill — nicht das Tool."</p>
+        </blockquote>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 16. NÄCHSTE SCHRITTE -->
+  <div class="slide" id="s16">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">16 / 19</span>
+      </div>
+      <div class="sc">
+        <h2>Nächste Schritte</h2>
+        <h1>Was ihr diese Woche macht</h1>
+        <div class="level-grid" style="margin-top:16px;">
+          <div class="level-card easy">
+            <span class="badge easy">Anmeldung gemacht</span>
+            <p style="font-size:clamp(13px,1.3vw,15px);">Schreib denselben Test für euer echtes Projekt — ein manueller Fall den ihr jede Woche macht.</p>
+          </div>
+          <div class="level-card medium">
+            <span class="badge medium">Warenkorb gemacht</span>
+            <p style="font-size:clamp(13px,1.3vw,15px);">Automatisiert einen bestehenden manuellen TestRail-Fall mit der test.step() Disziplin.</p>
+          </div>
+          <div class="level-card hard">
+            <span class="badge hard">Checkout gemacht</span>
+            <p style="font-size:clamp(13px,1.3vw,15px);">Bondar Academy — Lessons 3.6 (Coverage Planning) und 3.13 (Self-Healing). Zusammen 14 Minuten.</p>
+          </div>
+        </div>
+        <blockquote style="margin-top:14px;">
+          <p>Das Repo enthält Scripts die <code>test.step()</code>-Tests automatisch in TestRail-Fälle umwandeln — heute nicht live demonstriert, aber vollständig dokumentiert. Probiert es aus.</p>
+        </blockquote>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 17. TIPPS -->
+  <div class="slide" id="s17">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">17 / 19</span>
+      </div>
+      <div class="sc">
+        <h2>Best Practices</h2>
+        <h1>Tipps</h1>
+        <div class="cols" style="margin-top:16px;">
+          <div class="col">
+            <ul>
+              <li><strong>Erst Codegen, dann aufräumen</strong> — Happy Path aufzeichnen, CSS-Selektoren durch <code>getByRole()</code> ersetzen</li>
+              <li><strong>Trace Viewer</strong> — bei Fehlern sofort den Trace öffnen, nicht raten</li>
+              <li><strong>Paaring ist Pflicht</strong> — Aktion gefolgt von Ergebnis, sonst bricht der TestRail-Export</li>
+              <li><strong><code>test.only</code></strong> — während der Entwicklung nur einen Test ausführen</li>
+            </ul>
+          </div>
+          <div class="col">
+            <ul>
+              <li><strong>Cursor Auto-Modus vermeiden</strong> — explizit Claude oder GPT-4o wählen</li>
+              <li><strong>Claude Code Plan Mode</strong> — für komplexe Tests zuerst planen, dann generieren</li>
+              <li><strong>Locator-Priorität</strong> — <code>getByRole</code> → <code>getByLabel</code> → <code>getByTestId</code> → CSS nur als letztes Mittel</li>
+              <li><strong>Page Objects optional</strong> — mit AI-generierten Tests oft nicht nötig</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 18. RESSOURCEN -->
+  <div class="slide" id="s18">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+        <span class="slide-num">18 / 19</span>
+      </div>
+      <div class="sc">
+        <h2>Links</h2>
+        <h1>Ressourcen</h1>
+        <div class="cols" style="margin-top:16px;">
+          <div class="col">
+            <ul style="line-height:2.2;">
+              <li><a href="https://github.com/nortal/playwright-workshop" target="_blank">GitHub Repository — Workshop-Aufgaben &amp; Scripts</a></li>
+              <li><a href="https://www.saucedemo.com" target="_blank">saucedemo.com — Demo-App für die Übungen</a></li>
+              <li><a href="https://playwright.dev" target="_blank">playwright.dev — Offizielle Dokumentation</a></li>
+              <li><a href="https://playwright.dev/docs/codegen" target="_blank">playwright.dev/docs/codegen — Codegen Guide</a></li>
+            </ul>
+          </div>
+          <div class="col">
+            <ul style="line-height:2.2;">
+              <li><a href="https://cursor.com" target="_blank">cursor.com — Cursor IDE</a></li>
+              <li><a href="https://claude.ai/code" target="_blank">claude.ai/code — Claude Code</a></li>
+              <li><a href="https://bondaracademy.com" target="_blank">Bondar Academy — Claude Code for Playwright</a></li>
+              <li><a href="https://skills.ch" target="_blank">skills.ch — Skills-Bibliothek für Claude Code</a></li>
+            </ul>
+          </div>
+        </div>
+        <div style="margin-top:16px; padding:14px 18px; background:var(--sand-lt); border-radius:6px; border:1px solid var(--border); display:flex; align-items:center; gap:16px;">
+          <div style="width:80px; height:80px; background:var(--black); border-radius:6px; display:flex; align-items:center; justify-content:center; color:white; font-size:11px; text-align:center; font-family:var(--font-mono);">QR CODE<br>hier</div>
+          <div>
+            <p style="font-weight:600; font-size:14px; color:var(--black);">Repo jetzt klonen</p>
+            <p style="font-size:13px; font-family:var(--font-mono); color:var(--muted);">github.com/nortal/playwright-workshop</p>
+          </div>
+        </div>
+      </div>
+      <div class="sf">Playwright Workshop · Nortal</div>
+    </div>
+  </div>
+
+  <!-- 19. CLOSING -->
+  <div class="slide dark" id="s19">
+    <div class="si">
+      <div class="sh">
+        <div class="nortal-logo">
+          <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+          <span class="nortal-word">Nortal</span>
+        </div>
+      </div>
+      <div class="sc" style="justify-content:center;">
+        <p style="font-size:clamp(11px,1.1vw,14px); color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:2px; margin-bottom:16px;">Nortal · QA Automation · 2025</p>
+        <div class="closing-big">Los<br><em>geht's.</em></div>
+        <p style="font-size:clamp(15px,1.8vw,22px); color:rgba(255,255,255,0.5); margin-top:20px; font-weight:300;">
+          Wähle deine Aufgabe. Schreib deinen Test.<br>Fragen jederzeit.
+        </p>
+      </div>
+      <div class="sf">Nortal · 2025</div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- NAV -->
+<div id="nav">
+  <button class="nb" id="bp" onclick="go(-1)">←</button>
+  <span id="sc">1 / 19</span>
+  <button class="nb" id="bn" onclick="go(1)">→</button>
+  <div class="dots" id="dots"></div>
+</div>
+
+<script>
+  const TOTAL = 19;
+  let cur = 1;
+
+  const dots = document.getElementById('dots');
+  for (let i = 1; i <= TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 1 ? ' on' : '');
+    d.onclick = () => goTo(i);
+    dots.appendChild(d);
+  }
+
+  function goTo(n) {
+    if (n < 1 || n > TOTAL || n === cur) return;
+    const prev = document.getElementById('s' + cur);
+    prev.classList.remove('active');
+    prev.classList.add('out');
+    setTimeout(() => prev.classList.remove('out'), 400);
+    cur = n;
+    const next = document.getElementById('s' + cur);
+    next.classList.add('active');
+    document.getElementById('sc').textContent = cur + ' / ' + TOTAL;
+    document.getElementById('bp').disabled = cur === 1;
+    document.getElementById('bn').disabled = cur === TOTAL;
+    document.getElementById('progress').style.width = (cur / TOTAL * 100) + '%';
+    document.querySelectorAll('.dot').forEach((d, i) => {
+      d.classList.toggle('on', i + 1 === cur);
+    });
+  }
+
+  function go(d) { goTo(cur + d); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+  });
+
+  let tx = null;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    if (tx === null) return;
+    const dx = tx - e.changedTouches[0].clientX;
+    if (Math.abs(dx) > 40) go(dx > 0 ? 1 : -1);
+    tx = null;
+  });
+
+  function toggleFS() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+
+  document.getElementById('bp').disabled = true;
+  document.getElementById('progress').style.width = (1 / TOTAL * 100) + '%';
+</script>
+</body>
+</html>
