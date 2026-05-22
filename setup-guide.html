@@ -150,7 +150,7 @@
         <p style="margin-top:14px;"><strong>Option B — Per Installer (wenn Option A nicht klappt)</strong></p>
         <p>Download von <a href="https://nodejs.org/" target="_blank">nodejs.org</a> — nehmt die <strong>LTS-Version</strong>. Installer ausführen, alles auf "Weiter" klicken.</p>
 
-        <p style="margin-top:14px;font-size:12px;color:var(--muted);"><strong>Nach der Installation:</strong> Eingabeaufforderung schließen und neu öffnen, dann <code>node --version</code> erneut prüfen.</p>
+        <p style="margin-top:14px;font-size:12px;color:var(--muted);"><strong>Nach der Installation:</strong> Terminal komplett schließen und neu öffnen, dann <code>node --version</code> erneut prüfen.</p>
       </div>
     </div>
 
@@ -190,9 +190,9 @@
     <h3>Workshop-Projekt herunterladen</h3>
     <p>Jetzt holt ihr das Workshop-Projekt von GitHub auf euren Rechner und installiert alles was nötig ist.</p>
 
-    <p style="font-size:12px;color:var(--muted);margin-top:14px;"><strong>Wo Befehle eingeben?</strong> Öffnet wieder die Eingabeaufforderung (Windows) oder Terminal (Mac). Tippt einen Befehl, drückt Enter, wartet bis er fertig ist, dann den nächsten.</p>
+    <p style="font-size:12px;color:var(--muted);margin-top:14px;"><strong>Wo Befehle eingeben?</strong> Öffnet die <strong>Eingabeaufforderung</strong> (Windows: Startmenü → "cmd") oder das <strong>Terminal</strong> (Mac: Spotlight → "Terminal"). Tippt einen Befehl, drückt Enter, wartet bis er fertig ist, dann den nächsten.</p>
 
-    <p style="margin-top:14px;"><strong>Tipp:</strong> Befehle einfach kopieren (Strg+C) und in der Eingabeaufforderung einfügen (Rechtsklick im schwarzen Fenster, oder Strg+V).</p>
+    <p style="margin-top:14px;"><strong>Tipp:</strong> Befehle einfach kopieren (Strg+C / Cmd+C) und einfügen — auf Windows mit Rechtsklick im schwarzen Fenster oder Strg+V, auf Mac mit Cmd+V.</p>
 
     <pre style="margin-top:14px;"><code><span class="cmt"># 1. Wechselt in einen Ordner wo das Projekt liegen soll (z.B. Desktop)</span>
 <span class="ok">cd Desktop</span>
@@ -227,16 +227,20 @@
       <div class="tool-card">
         <div class="tool-name">Claude Code</div>
         <div class="tool-desc">AI-Agent von Anthropic. Läuft im Terminal.</div>
-        <p style="font-size:12px;color:var(--muted);margin:8px 0 4px;">In PowerShell (Windows) ausführen:</p>
-        <pre style="margin:0;"><code class="ok">irm https://claude.ai/install.ps1 | iex</code></pre>
-        <p style="font-size:11px;color:var(--muted);margin-top:6px;">Mac/Linux: Anleitung auf <a href="https://docs.anthropic.com/en/docs/claude-code" target="_blank" class="tool-link">docs.anthropic.com</a></p>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 4px;"><strong>Windows</strong> — in PowerShell:</p>
+        <pre style="margin:0 0 8px;"><code class="ok">irm https://claude.ai/install.ps1 | iex</code></pre>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 4px;"><strong>Mac / Linux</strong> — im Terminal:</p>
+        <pre style="margin:0;"><code class="ok">curl -fsSL https://claude.ai/install.sh | bash</code></pre>
+        <p style="font-size:11px;color:var(--muted);margin-top:6px;">Mehr Infos: <a href="https://docs.anthropic.com/en/docs/claude-code" target="_blank" class="tool-link">docs.anthropic.com</a></p>
       </div>
 
       <div class="tool-card">
         <div class="tool-name">Codex CLI</div>
         <div class="tool-desc">AI-Agent von OpenAI. Läuft im Terminal.</div>
-        <p style="font-size:12px;color:var(--muted);margin:8px 0 4px;">Im Terminal ausführen:</p>
-        <pre style="margin:0;"><code class="ok">npm install -g @openai/codex</code></pre>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 4px;"><strong>Windows</strong>:</p>
+        <pre style="margin:0 0 8px;"><code class="ok">npm install -g @openai/codex</code></pre>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 4px;"><strong>Mac / Linux</strong> — mit sudo:</p>
+        <pre style="margin:0;"><code class="ok">sudo npm install -g @openai/codex</code></pre>
         <p style="font-size:11px;color:var(--muted);margin-top:6px;">Beim ersten Start mit ChatGPT-Account einloggen</p>
       </div>
 
