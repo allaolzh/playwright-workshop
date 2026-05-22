@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nortal · Playwright Workshop · Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --black:#2C2C30;--white:#FFFFFF;--green:#009638;--green-lt:#E8F5EC;
+    --orange:#F3743B;--sand:#E8E7E3;--sand-lt:#F5F4F1;--muted:#6B6B70;
+    --border:#DDDCDA;--code-bg:#1E1E22;--code-fg:#E8E7E3;
+    --font:'Inter',sans-serif;--mono:'DM Mono',monospace;
+  }
+  html,body{font-family:var(--font);background:var(--sand-lt);color:var(--black);line-height:1.5}
+  body{min-height:100vh;padding:40px 20px}
+  .page{max-width:840px;margin:0 auto;background:var(--white);border-radius:12px;box-shadow:0 2px 24px rgba(0,0,0,0.04);overflow:hidden}
+
+  /* HEADER */
+  .header{background:var(--black);color:var(--white);padding:32px 44px;display:flex;align-items:center;justify-content:space-between}
+  .nortal-logo{display:flex;align-items:center;gap:10px}
+  .nortal-mark{display:flex;align-items:flex-end;gap:3px}
+  .nortal-mark span{display:block;width:5px;border-radius:2.5px;background:var(--green)}
+  .nortal-mark span:nth-child(1){height:12px;animation:bar1 2.4s ease-in-out infinite}
+  .nortal-mark span:nth-child(2){height:20px;animation:bar2 2.4s ease-in-out infinite}
+  .nortal-mark span:nth-child(3){height:8px;animation:bar3 2.4s ease-in-out infinite}
+  .nortal-mark span:nth-child(4){height:16px;animation:bar4 2.4s ease-in-out infinite}
+  @keyframes bar1{0%,100%{height:12px}50%{height:18px}}
+  @keyframes bar2{0%,100%{height:20px}50%{height:8px}}
+  @keyframes bar3{0%,100%{height:8px}50%{height:16px}}
+  @keyframes bar4{0%,100%{height:16px}50%{height:10px}}
+  .nortal-word{font-size:13px;font-weight:700;letter-spacing:3px;text-transform:uppercase}
+  .header-meta{font-size:11px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1.5px}
+
+  /* HERO */
+  .hero{padding:48px 44px 32px;border-bottom:1px solid var(--border)}
+  .eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--green);margin-bottom:10px}
+  h1{font-size:36px;font-weight:700;letter-spacing:-0.8px;line-height:1.1;margin-bottom:14px}
+  .hero-sub{font-size:16px;color:var(--muted);font-weight:300;max-width:600px}
+
+  /* SECTION */
+  section{padding:32px 44px;border-bottom:1px solid var(--border)}
+  section:last-of-type{border-bottom:none}
+  section h2{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--green);margin-bottom:10px}
+  section h3{font-size:22px;font-weight:600;letter-spacing:-0.3px;margin-bottom:16px}
+  section p{font-size:14px;color:#3C3C42;font-weight:300;margin-bottom:12px}
+
+  /* STEP CARD */
+  .step{background:var(--sand-lt);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:6px;padding:16px 20px;margin-bottom:12px}
+  .step-num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--green);color:var(--white);font-size:12px;font-weight:700;margin-right:10px;vertical-align:middle}
+  .step-title{font-size:15px;font-weight:600;display:inline-block;vertical-align:middle}
+  .step-body{margin-top:10px}
+  .step-body p{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .step-body a{color:var(--green);text-decoration:none;border-bottom:1px solid rgba(0,150,56,0.3)}
+
+  /* CODE BLOCK */
+  pre{font-family:var(--mono);background:var(--code-bg);color:var(--code-fg);padding:12px 16px;border-radius:6px;font-size:12px;line-height:1.7;overflow-x:auto;margin-top:8px}
+  code{font-family:var(--mono);background:var(--sand);padding:2px 6px;border-radius:3px;font-size:0.88em}
+  pre code{background:transparent;padding:0}
+  .ok{color:#A5E6BA}
+  .cmt{color:#636369}
+
+  /* TOOL CARD */
+  .tools-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .tool-card{background:var(--white);border:1px solid var(--border);border-radius:6px;padding:14px 16px;transition:border-color 0.15s}
+  .tool-card:hover{border-color:var(--green)}
+  .tool-name{font-size:14px;font-weight:600;margin-bottom:4px}
+  .tool-desc{font-size:12px;color:var(--muted);margin-bottom:8px}
+  .tool-cmd{font-family:var(--mono);font-size:11px;background:var(--code-bg);color:#A5E6BA;padding:6px 10px;border-radius:4px;overflow-x:auto;display:block}
+  .tool-link{font-size:11px;color:var(--green);text-decoration:none;border-bottom:1px solid rgba(0,150,56,0.3)}
+
+  /* CHECKLIST */
+  .checklist{background:var(--green-lt);border:1px solid rgba(0,150,56,0.25);border-radius:6px;padding:18px 22px;margin-top:16px}
+  .checklist h4{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#006632;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+  .progress-pill{font-size:11px;font-weight:600;background:var(--white);color:var(--green);padding:3px 10px;border-radius:10px;letter-spacing:0;text-transform:none;font-family:var(--mono)}
+  .check-item{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#14532D;margin-bottom:6px;padding:6px 8px;border-radius:4px;cursor:pointer;transition:background 0.15s;user-select:none}
+  .check-item:hover{background:rgba(0,150,56,0.05)}
+  .check-item:last-child{margin-bottom:0}
+  .check-item input[type="checkbox"]{position:absolute;opacity:0;pointer-events:none}
+  .check-box{flex-shrink:0;width:18px;height:18px;border:1.5px solid var(--green);border-radius:3px;margin-top:0;background:var(--white);display:flex;align-items:center;justify-content:center;transition:all 0.15s;position:relative}
+  .check-box svg{width:12px;height:12px;opacity:0;transition:opacity 0.15s}
+  .check-item.done .check-box{background:var(--green)}
+  .check-item.done .check-box svg{opacity:1}
+  .check-item.done .check-text{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+  .check-text{flex:1;line-height:1.5}
+  .reset-btn{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;text-decoration:underline;margin-top:12px;padding:0;font-family:var(--font);display:none}
+  .reset-btn.visible{display:inline-block}
+  .reset-btn:hover{color:var(--black)}
+
+  /* WARNING */
+  .warning{background:#FEF3ED;border:1px solid rgba(243,116,59,0.3);border-left:3px solid var(--orange);border-radius:6px;padding:14px 18px;margin-top:16px}
+  .warning p{font-size:13px;color:#9A3412;font-weight:400;margin-bottom:0}
+  .warning strong{font-weight:600}
+
+  /* FOOTER */
+  .footer{padding:20px 44px;text-align:center;font-size:11px;color:var(--muted)}
+
+  @media(max-width:680px){
+    .tools-grid{grid-template-columns:1fr}
+    .hero{padding:32px 24px 24px}
+    section{padding:24px 24px}
+    .header{padding:24px}
+    h1{font-size:28px}
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="header">
+    <div class="nortal-logo">
+      <div class="nortal-mark"><span></span><span></span><span></span><span></span></div>
+      <span class="nortal-word">Nortal</span>
+    </div>
+    <span class="header-meta">Setup-Anleitung · 2026</span>
+  </div>
+
+  <div class="hero">
+    <div class="eyebrow">Playwright Workshop · Vor dem Termin</div>
+    <h1>Setup-Anleitung</h1>
+    <p class="hero-sub">Bitte installiert alles unten <strong>vor dem Workshop</strong> — dann können wir direkt loslegen. Keine Sorge, falls ihr noch nie ein Terminal genutzt habt: hier ist alles Schritt für Schritt erklärt.</p>
+  </div>
+
+  <section>
+    <h2>Schritt 1</h2>
+    <h3>Grundlagen installieren</h3>
+    <p>Diese drei Tools braucht ihr unabhängig davon welches AI-Tool ihr nutzt. Falls ihr eines davon schon habt — gut, einfach weiter zum nächsten.</p>
+
+    <div class="step">
+      <span class="step-num">1</span>
+      <span class="step-title">Node.js 18 oder höher</span>
+      <div class="step-body">
+        <p>Was ist das? Eine Programmier-Umgebung — Playwright und unsere Test-Tools brauchen sie.</p>
+        <p><strong>Prüfen ob installiert:</strong></p>
+        <p style="font-size:12px;color:var(--muted);">Öffnet die <strong>Eingabeaufforderung</strong> (Windows: Startmenü → "cmd" eingeben) oder das <strong>Terminal</strong> (Mac: Spotlight → "Terminal"). Tippt diesen Befehl ein und drückt Enter:</p>
+        <pre><code><span class="ok">node --version</span></code></pre>
+        <p>Wenn ihr eine Zahl seht wie <code>v18.x.x</code> oder höher — alles gut, weiter zu Schritt 2. Wenn nicht oder die Zahl niedriger ist, gibt es zwei Wege:</p>
+
+        <p style="margin-top:14px;"><strong>Option A — Per Befehl installieren (schnellster Weg)</strong></p>
+        <p style="font-size:12px;color:var(--muted);"><strong>Windows</strong> — in der Eingabeaufforderung:</p>
+        <pre style="margin-bottom:8px;"><code><span class="ok">winget install OpenJS.NodeJS.LTS</span></code></pre>
+        <p style="font-size:12px;color:var(--muted);"><strong>Mac</strong> — im Terminal (benötigt <a href="https://brew.sh/" target="_blank">Homebrew</a>):</p>
+        <pre style="margin-bottom:8px;"><code><span class="ok">brew install node</span></code></pre>
+        <p style="font-size:11px;color:var(--muted);">Falls Homebrew fehlt, einmal diesen Befehl ausführen:</p>
+        <pre style="margin-bottom:0;"><code><span class="ok">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</span></code></pre>
+
+        <p style="margin-top:14px;"><strong>Option B — Per Installer (wenn Option A nicht klappt)</strong></p>
+        <p>Download von <a href="https://nodejs.org/" target="_blank">nodejs.org</a> — nehmt die <strong>LTS-Version</strong>. Installer ausführen, alles auf "Weiter" klicken.</p>
+
+        <p style="margin-top:14px;font-size:12px;color:var(--muted);"><strong>Nach der Installation:</strong> Eingabeaufforderung schließen und neu öffnen, dann <code>node --version</code> erneut prüfen.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <span class="step-num">2</span>
+      <span class="step-title">Git</span>
+      <div class="step-body">
+        <p>Was ist das? Ein Tool um Code-Projekte (wie unser Workshop-Repo) auf eurem Rechner zu kopieren.</p>
+        <p><strong>Prüfen ob installiert</strong> — im Terminal:</p>
+        <pre><code><span class="ok">git --version</span></code></pre>
+        <p>Wenn ihr eine Versionsnummer seht — gut, weiter zu Schritt 3. Wenn nicht:</p>
+
+        <p style="margin-top:14px;"><strong>Option A — Per Befehl installieren</strong></p>
+        <p style="font-size:12px;color:var(--muted);"><strong>Windows</strong>:</p>
+        <pre style="margin-bottom:8px;"><code><span class="ok">winget install Git.Git</span></code></pre>
+        <p style="font-size:12px;color:var(--muted);"><strong>Mac</strong>:</p>
+        <pre style="margin-bottom:0;"><code><span class="ok">brew install git</span></code></pre>
+
+        <p style="margin-top:14px;"><strong>Option B — Per Installer</strong></p>
+        <p>Download von <a href="https://git-scm.com/" target="_blank">git-scm.com</a> — Installer ausführen, alle Standard-Optionen einfach durchklicken.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <span class="step-num">3</span>
+      <span class="step-title">Code-Editor (VS Code oder Cursor)</span>
+      <div class="step-body">
+        <p>Was ist das? Der Editor in dem ihr den Test-Code seht und bearbeitet.</p>
+        <p>Wenn ihr <strong>Cursor</strong> als AI-Tool nutzt (siehe Schritt 3), ist das automatisch euer Editor — ihr braucht VS Code nicht zusätzlich.</p>
+        <p>Sonst: <a href="https://code.visualstudio.com/" target="_blank">code.visualstudio.com</a> herunterladen und installieren.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Schritt 2</h2>
+    <h3>Workshop-Projekt herunterladen</h3>
+    <p>Jetzt holt ihr das Workshop-Projekt von GitHub auf euren Rechner und installiert alles was nötig ist.</p>
+
+    <p style="font-size:12px;color:var(--muted);margin-top:14px;"><strong>Wo Befehle eingeben?</strong> Öffnet wieder die Eingabeaufforderung (Windows) oder Terminal (Mac). Tippt einen Befehl, drückt Enter, wartet bis er fertig ist, dann den nächsten.</p>
+
+    <p style="margin-top:14px;"><strong>Tipp:</strong> Befehle einfach kopieren (Strg+C) und in der Eingabeaufforderung einfügen (Rechtsklick im schwarzen Fenster, oder Strg+V).</p>
+
+    <pre style="margin-top:14px;"><code><span class="cmt"># 1. Wechselt in einen Ordner wo das Projekt liegen soll (z.B. Desktop)</span>
+<span class="ok">cd Desktop</span>
+
+<span class="cmt"># 2. Repo holen — lädt das Projekt herunter</span>
+<span class="ok">git clone https://github.com/allaolzh/playwright-workshop-project</span>
+
+<span class="cmt"># 3. In den neuen Projekt-Ordner wechseln</span>
+<span class="ok">cd playwright-workshop-project</span>
+
+<span class="cmt"># 4. Dependencies installieren (dauert ca. 2 Minuten)</span>
+<span class="ok">npm install</span>
+
+<span class="cmt"># 5. Playwright-Browser installieren (ca. 1 Minute)</span>
+<span class="ok">npx playwright install</span>
+
+<span class="cmt"># 6. Skills für eure AI-Tools vorbereiten</span>
+<span class="ok">npm run setup-skills</span>
+
+<span class="cmt"># 7. Test starten — wenn das funktioniert, seid ihr startklar</span>
+<span class="ok">npx playwright test --ui</span></code></pre>
+
+    <p style="margin-top:14px;">Wenn ein <strong>Playwright UI-Fenster aufgeht</strong> und ihr dort einen Test sehen könnt — perfekt, alles funktioniert. Fenster wieder schließen und weiter zu Schritt 3.</p>
+  </section>
+
+  <section>
+    <h2>Schritt 3</h2>
+    <h3>AI-Tool installieren</h3>
+    <p>Installiert <strong>eines</strong> der folgenden Tools — egal welches, alle drei funktionieren im Workshop.</p>
+
+    <div class="tools-grid">
+      <div class="tool-card">
+        <div class="tool-name">Claude Code</div>
+        <div class="tool-desc">AI-Agent von Anthropic. Läuft im Terminal.</div>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 4px;">In PowerShell (Windows) ausführen:</p>
+        <pre style="margin:0;"><code class="ok">irm https://claude.ai/install.ps1 | iex</code></pre>
+        <p style="font-size:11px;color:var(--muted);margin-top:6px;">Mac/Linux: Anleitung auf <a href="https://docs.anthropic.com/en/docs/claude-code" target="_blank" class="tool-link">docs.anthropic.com</a></p>
+      </div>
+
+      <div class="tool-card">
+        <div class="tool-name">Codex CLI</div>
+        <div class="tool-desc">AI-Agent von OpenAI. Läuft im Terminal.</div>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 4px;">Im Terminal ausführen:</p>
+        <pre style="margin:0;"><code class="ok">npm install -g @openai/codex</code></pre>
+        <p style="font-size:11px;color:var(--muted);margin-top:6px;">Beim ersten Start mit ChatGPT-Account einloggen</p>
+      </div>
+
+      <div class="tool-card">
+        <div class="tool-name">Cursor</div>
+        <div class="tool-desc">Code-Editor mit AI integriert. Kein Terminal nötig.</div>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 4px;">Download und installieren:</p>
+        <p style="font-size:13px;"><a href="https://cursor.com" target="_blank" class="tool-link">cursor.com</a></p>
+        <p style="font-size:11px;color:var(--muted);margin-top:6px;">Gut für alle die lieber im Editor statt im Terminal arbeiten</p>
+      </div>
+    </div>
+
+    <div class="warning">
+      <p><strong>Wichtig:</strong> Browser-Tools wie ChatGPT oder Claude Chat (in der Cloud) sind <strong>nicht ausreichend</strong> für den Workshop — sie können die Skills nicht nutzen. Eines der drei Tools oben muss installiert sein.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Checkliste</h2>
+    <h3>Vor dem Workshop solltet ihr können:</h3>
+
+    <div class="checklist">
+      <h4>Vorbereitung erfolgreich wenn: <span class="progress-pill" id="progressPill">0 / 6</span></h4>
+      <label class="check-item" data-key="chk1">
+        <input type="checkbox">
+        <span class="check-box"><svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 6L5 9L10 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="check-text"><code>node --version</code> zeigt 18 oder höher</span>
+      </label>
+      <label class="check-item" data-key="chk2">
+        <input type="checkbox">
+        <span class="check-box"><svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 6L5 9L10 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="check-text"><code>git --version</code> zeigt eine Versionsnummer</span>
+      </label>
+      <label class="check-item" data-key="chk3">
+        <input type="checkbox">
+        <span class="check-box"><svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 6L5 9L10 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="check-text">Ihr habt den Ordner <code>playwright-workshop-project</code> lokal</span>
+      </label>
+      <label class="check-item" data-key="chk4">
+        <input type="checkbox">
+        <span class="check-box"><svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 6L5 9L10 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="check-text"><code>npm install</code> ist ohne Fehler durchgelaufen</span>
+      </label>
+      <label class="check-item" data-key="chk5">
+        <input type="checkbox">
+        <span class="check-box"><svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 6L5 9L10 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="check-text"><code>npx playwright test --ui</code> öffnet die Playwright UI</span>
+      </label>
+      <label class="check-item" data-key="chk6">
+        <input type="checkbox">
+        <span class="check-box"><svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 6L5 9L10 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="check-text">Mindestens ein AI-Tool installiert und eingeloggt</span>
+      </label>
+      <button class="reset-btn" id="resetBtn" type="button">Checkliste zurücksetzen</button>
+    </div>
+
+    <div style="background:var(--green-lt);border:1px solid rgba(0,150,56,0.25);border-radius:6px;padding:14px 18px;margin-top:16px;">
+      <p style="font-size:13px;color:#006632;"><strong>Bei Problemen:</strong> Schreibt mich gerne vorher an — wir können das Setup zusammen anschauen.</p>
+    </div>
+  </section>
+
+  <div class="footer">
+    Nortal · Playwright Workshop · 2026
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'nortal-setup-checklist';
+  const items = document.querySelectorAll('.check-item');
+  const total = items.length;
+  const pill = document.getElementById('progressPill');
+  const resetBtn = document.getElementById('resetBtn');
+
+  // Load state from localStorage
+  let state = {};
+  try {
+    state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  } catch(e) { state = {}; }
+
+  function updateProgress() {
+    let done = 0;
+    items.forEach(item => {
+      if (item.classList.contains('done')) done++;
+    });
+    pill.textContent = done + ' / ' + total;
+    if (done === total) {
+      pill.style.background = 'var(--green)';
+      pill.style.color = 'white';
+    } else {
+      pill.style.background = 'var(--white)';
+      pill.style.color = 'var(--green)';
+    }
+    resetBtn.classList.toggle('visible', done > 0);
+  }
+
+  function saveState() {
+    const out = {};
+    items.forEach(item => {
+      out[item.dataset.key] = item.classList.contains('done');
+    });
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
+    } catch(e) {}
+  }
+
+  // Apply saved state
+  items.forEach(item => {
+    const key = item.dataset.key;
+    if (state[key]) {
+      item.classList.add('done');
+      item.querySelector('input').checked = true;
+    }
+  });
+
+  // Click handler
+  items.forEach(item => {
+    item.addEventListener('click', function(e) {
+      e.preventDefault();
+      item.classList.toggle('done');
+      const input = item.querySelector('input');
+      input.checked = item.classList.contains('done');
+      saveState();
+      updateProgress();
+    });
+  });
+
+  // Reset
+  resetBtn.addEventListener('click', function() {
+    if (!confirm('Alle Häkchen löschen?')) return;
+    items.forEach(item => {
+      item.classList.remove('done');
+      item.querySelector('input').checked = false;
+    });
+    saveState();
+    updateProgress();
+  });
+
+  updateProgress();
+})();
+</script>
+
+</body>
+</html>
