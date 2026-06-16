@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Playwright &amp; Node.js – Workshop</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Nunito',"Segoe UI",system-ui,Arial,sans-serif;
+    background:#dfe4ea;color:#243044;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:100vh;gap:14px;padding:18px;
+  }
+  .stage{
+    position:relative;width:min(96vw,1280px);aspect-ratio:16/9;
+    border-radius:18px;overflow:hidden;background:#dfe4ea;
+  }
+  .frame{
+    position:absolute;inset:0;width:100%;height:100%;border:0;
+    opacity:0;pointer-events:none;transition:opacity .25s ease;
+  }
+  .frame.active{opacity:1;pointer-events:auto;}
+
+  .bar{
+    display:flex;align-items:center;gap:16px;
+    background:#fff;border-radius:30px;padding:8px 14px;
+    box-shadow:0 12px 30px -16px rgba(20,30,50,.5);
+  }
+  .nav{
+    width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
+    background:#eef1f4;color:#243044;font-size:18px;font-weight:900;
+    display:flex;align-items:center;justify-content:center;transition:background .15s;
+  }
+  .nav:hover{background:#dde3ea;}
+  .nav:disabled{opacity:.35;cursor:default;}
+  .dots{display:flex;gap:9px;align-items:center;}
+  .dot{
+    width:11px;height:11px;border-radius:50%;border:none;cursor:pointer;
+    background:#c4ccd6;transition:transform .15s, background .15s;
+  }
+  .dot:hover{transform:scale(1.2);}
+  .dot.active{background:#5e9c4e;transform:scale(1.25);}
+  .count{font-size:13px;font-weight:800;color:#5d6b7d;min-width:46px;text-align:center;}
+  .fs{
+    width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
+    background:#eef1f4;color:#243044;font-size:16px;display:flex;
+    align-items:center;justify-content:center;transition:background .15s;
+  }
+  .fs:hover{background:#dde3ea;}
+  .hint{font-size:12px;font-weight:700;color:#8a94a3;}
+  :fullscreen .stage{width:min(96vw,177vh);}
+</style>
+</head>
+<body>
+
+  <div class="stage" id="stage">
+    <iframe class="frame active" data-i="0" loading="eager" srcdoc="<!DOCTYPE html>
+<html lang=&quot;de&quot;>
+<head>
+<meta charset=&quot;UTF-8&quot;>
+<meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;>
+<title>Code ↔ Playwright-UI</title>
+<link rel=&quot;preconnect&quot; href=&quot;https://fonts.googleapis.com&quot;>
+<link rel=&quot;preconnect&quot; href=&quot;https://fonts.gstatic.com&quot; crossorigin>
+<link href=&quot;https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap&quot; rel=&quot;stylesheet&quot;>
+<style>
+  :root{
+    --ink:#243044; --muted:#5d6b7d;
+    --desc:#e0891e; --desc-t:#fbeed7;
+    --test:#1597a0; --test-t:#def0f1;
+    --step:#5e9c4e; --step-t:#e9f3e3;
+    --editor:#1e2228; --paper:#fff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Nunito',&quot;Segoe UI&quot;,system-ui,Arial,sans-serif;color:var(--ink);
+    background:#dfe4ea;display:flex;align-items:center;justify-content:center;
+    min-height:100vh;padding:24px;
+  }
+  .slide-wrap{width:min(96vw,1280px);aspect-ratio:16/9;}
+  .slide{
+    width:100%;height:100%;background:var(--paper);border-radius:18px;
+    box-shadow:0 30px 70px -30px rgba(20,30,50,.45);
+    overflow:hidden;padding:30px 38px 24px;display:flex;flex-direction:column;
+  }
+  .eyebrow{color:var(--step);font-weight:800;letter-spacing:3px;font-size:14px;text-transform:uppercase;}
+  .title{font-size:30px;font-weight:900;letter-spacing:-.4px;margin-top:3px;}
+  .title .d{color:var(--desc);} .title .t{color:var(--test);} .title .s{color:var(--step);}
+
+  .legend{display:flex;gap:22px;margin-top:12px;flex-wrap:wrap;}
+  .lg{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;}
+  .lg .dot{width:13px;height:13px;border-radius:4px;}
+  .lg .mono{font-family:'JetBrains Mono',monospace;font-weight:700;}
+  .lg span.r{color:var(--muted);font-weight:600;}
+  .lg.d .dot{background:var(--desc);} .lg.t .dot{background:var(--test);} .lg.s .dot{background:var(--step);}
+
+  .stage{flex:1;display:flex;align-items:stretch;gap:10px;margin-top:16px;min-height:0;}
+
+  .panel{display:flex;flex-direction:column;min-width:0;}
+  .panel.code{flex:0 0 45%;}
+  .panel.ui{flex:1;}
+  .panel-h{font-size:13px;font-weight:800;color:var(--muted);margin-bottom:6px;}
+  .panel-h .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* ---- code editor ---- */
+  .editor{
+    background:var(--editor);border-radius:12px;padding:14px 16px;flex:1;
+    font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;line-height:1.62;color:#cdd6df;overflow:hidden;
+  }
+  .ln{white-space:pre;}
+  .ln.cmt{color:#7f8b99;}
+  .hl{position:relative;border-left:4px solid;padding:1px 0 1px 9px;margin:1px 0;border-radius:0 6px 6px 0;}
+  .hl.desc{border-color:var(--desc);}
+  .hl.test{border-color:var(--test);}
+  .hl.step{border-color:var(--step);background:rgba(94,156,78,.13);}
+  .pill{
+    position:absolute;top:1px;right:6px;font-family:'Nunito';font-size:10px;font-weight:800;
+    color:#fff;padding:1px 7px;border-radius:6px;letter-spacing:.2px;
+  }
+  .pill.d{background:var(--desc);} .pill.t{background:var(--test);} .pill.s{background:var(--step);}
+
+  /* ---- middle arrow ---- */
+  .mid{flex:0 0 86px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
+  .mid .cap{font-size:12px;font-weight:800;color:var(--muted);text-align:center;line-height:1.2;}
+  .mid svg{width:64px;height:20px;}
+
+  /* ---- UI recreation ---- */
+  .uiwin{flex:1;border:1px solid #d2d6db;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;background:#fbfbfc;}
+  .uibar{background:#edeff1;padding:7px 11px;font-size:12px;font-weight:800;color:#3a4250;display:flex;align-items:center;gap:7px;border-bottom:1px solid #dfe2e6;}
+  .uibar .mask{width:14px;height:14px;border-radius:3px;background:var(--step);display:inline-block;}
+  .uibody{flex:1;display:flex;min-height:0;}
+
+  .tree{flex:0 0 47%;padding:9px 8px;border-right:1px solid #e4e7ea;overflow:hidden;}
+  .status{font-size:11px;font-weight:700;color:#3a4250;margin-bottom:7px;}
+  .status .fail{color:#d23b3b;}
+  .node{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:2px 5px;border-radius:5px;line-height:1.5;white-space:nowrap;}
+  .node .ok{color:var(--step);font-weight:900;}
+  .node .no{color:#d23b3b;font-weight:900;}
+  .i1{margin-left:0;} .i2{margin-left:15px;} .i3{margin-left:30px;} .i4{margin-left:45px;}
+  .node.mark{position:relative;}
+  .node.mark.desc{background:var(--desc-t);box-shadow:inset 3px 0 0 var(--desc);}
+  .node.mark.test{background:var(--test-t);box-shadow:inset 3px 0 0 var(--test);}
+  .tag{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:#fff;padding:1px 6px;border-radius:5px;margin-left:6px;}
+  .tag.d{background:var(--desc);} .tag.t{background:var(--test);}
+
+  .acts{flex:1;padding:9px 9px;min-width:0;display:flex;flex-direction:column;}
+  .acts-h{font-size:11px;font-weight:800;color:#3a4250;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;}
+  .acts-h .tag{margin:0;}
+  .steplist{border-left:4px solid var(--step);background:var(--step-t);border-radius:0 8px 8px 0;padding:4px 6px;flex:1;overflow:hidden;}
+  .act{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:11px;font-weight:600;color:#2c3340;padding:2.5px 4px;border-bottom:1px solid rgba(94,156,78,.18);white-space:nowrap;}
+  .act:last-child{border-bottom:none;}
+  .act .lbl{overflow:hidden;text-overflow:ellipsis;}
+  .act .lbl .chev{color:var(--step);font-weight:800;margin-right:5px;}
+  .act .ms{color:#7f8b99;font-size:10px;flex:0 0 auto;}
+
+  .why{margin-top:13px;display:flex;align-items:stretch;gap:10px;}
+  .why .h{flex:0 0 auto;display:flex;align-items:center;font-size:14px;font-weight:900;color:var(--ink);}
+  .why-card{flex:1;border-left:4px solid;border-radius:0 9px 9px 0;padding:8px 11px;font-size:12px;font-weight:600;color:#2c3340;line-height:1.34;}
+  .why-card b{font-family:'JetBrains Mono',monospace;font-weight:700;}
+  .why-card.d{background:var(--desc-t);border-color:var(--desc);} .why-card.d b{color:#b06a0e;}
+  .why-card.t{background:var(--test-t);border-color:var(--test);} .why-card.t b{color:#0f7a82;}
+  .why-card.s{background:var(--step-t);border-color:var(--step);} .why-card.s b{color:var(--step);}
+</style>
+</head>
+<body>
+<div class=&quot;slide-wrap&quot;>
+<div class=&quot;slide&quot;>
+
+  <div class=&quot;title&quot;>Wo stecken <span class=&quot;d&quot;>describe</span>, <span class=&quot;t&quot;>test</span> &amp; <span class=&quot;s&quot;>step</span> im Playwright-UI?</div>
+
+  <div class=&quot;legend&quot;>
+    <div class=&quot;lg d&quot;><span class=&quot;dot&quot;></span><span class=&quot;mono&quot;>test.describe()</span><span class=&quot;r&quot;>= der Test-Block</span></div>
+    <div class=&quot;lg t&quot;><span class=&quot;dot&quot;></span><span class=&quot;mono&quot;>test()</span><span class=&quot;r&quot;>= der einzelne Test</span></div>
+    <div class=&quot;lg s&quot;><span class=&quot;dot&quot;></span><span class=&quot;mono&quot;>test.step()</span><span class=&quot;r&quot;>= ein Schritt in den Actions</span></div>
+  </div>
+
+  <div class=&quot;stage&quot;>
+
+    <!-- ============ CODE ============ -->
+    <div class=&quot;panel code&quot;>
+      <div class=&quot;panel-h&quot;>Dein Test-Code · <span class=&quot;mono&quot;>backpack.spec.ts</span></div>
+      <div class=&quot;editor&quot;>
+        <div class=&quot;ln&quot;>import { test, expect } from '@playwright/test';</div>
+        <div class=&quot;ln&quot;> </div>
+        <div class=&quot;hl desc&quot;><span class=&quot;pill d&quot;>test.describe</span>
+          <div class=&quot;ln&quot;>test.describe('Saucedemo Warenkorb', () =&gt; {</div>
+          <div class=&quot;hl test&quot;><span class=&quot;pill t&quot;>test</span>
+            <div class=&quot;ln&quot;>  test('Backpack in Warenkorb legen',</div>
+            <div class=&quot;ln&quot;>       async ({ page }) =&gt; {</div>
+            <div class=&quot;ln&quot;> </div>
+            <div class=&quot;hl step&quot;><span class=&quot;pill s&quot;>test.step</span>
+              <div class=&quot;ln&quot;>    await test.step('Die Login-Seite</div>
+              <div class=&quot;ln&quot;>           wird angezeigt.', async () =&gt; {</div>
+              <div class=&quot;ln&quot;>      await expect(page.locator(</div>
+              <div class=&quot;ln&quot;>        '[data-test=&quot;username&quot;]'))</div>
+              <div class=&quot;ln&quot;>        .toBeVisible();</div>
+              <div class=&quot;ln&quot;>    });</div>
+              <div class=&quot;ln cmt&quot;>    // … weitere test.step(...)</div>
+            </div>
+            <div class=&quot;ln&quot;>  });</div>
+          </div>
+          <div class=&quot;ln&quot;>});</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ MIDDLE ============ -->
+    <div class=&quot;mid&quot;>
+      <div class=&quot;cap&quot;>erscheint<br>als</div>
+      <svg viewBox=&quot;0 0 64 20&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;>
+        <path d=&quot;M2 10 H48&quot; stroke=&quot;#9aa6b5&quot; stroke-width=&quot;5&quot; stroke-linecap=&quot;round&quot;/>
+        <path d=&quot;M42 3 L60 10 L42 17 Z&quot; fill=&quot;#9aa6b5&quot;/>
+      </svg>
+    </div>
+
+    <!-- ============ PLAYWRIGHT UI ============ -->
+    <div class=&quot;panel ui&quot;>
+      <div class=&quot;panel-h&quot;>Playwright-UI · Trace Viewer <span class=&quot;mono&quot;>(npx playwright test --ui)</span></div>
+      <div class=&quot;uiwin&quot;>
+        <div class=&quot;uibar&quot;><span class=&quot;mask&quot;></span>Playwright Test</div>
+        <div class=&quot;uibody&quot;>
+
+          <!-- test tree -->
+          <div class=&quot;tree&quot;>
+            <div class=&quot;status&quot;>2/2 (100%) — 1 passed, <span class=&quot;fail&quot;>1 failed</span></div>
+            <div class=&quot;node i1&quot;><span class=&quot;ok&quot;>✓</span> assignment-1</div>
+            <div class=&quot;node i2&quot;><span class=&quot;ok&quot;>✓</span> backpack.spec.ts</div>
+            <div class=&quot;node i3 mark desc&quot;><span class=&quot;ok&quot;>✓</span> Saucedemo Warenkorb<span class=&quot;tag d&quot;>test.describe</span></div>
+            <div class=&quot;node i4 mark test&quot;><span class=&quot;ok&quot;>✓</span> Backpack in Warenkorb legen<span class=&quot;tag t&quot;>test</span></div>
+            <div class=&quot;node i1&quot;><span class=&quot;no&quot;>✗</span> assignment-2</div>
+            <div class=&quot;node i2&quot;><span class=&quot;no&quot;>✗</span> bad-locators.spec.ts</div>
+          </div>
+
+          <!-- actions -->
+          <div class=&quot;acts&quot;>
+            <div class=&quot;acts-h&quot;><span>Actions</span><span class=&quot;tag&quot; style=&quot;background:var(--step)&quot;>test.step → jede Zeile</span></div>
+            <div class=&quot;steplist&quot;>
+              <div class=&quot;act&quot;><span class=&quot;lbl&quot;><span class=&quot;chev&quot;>▾</span>Die Login-Seite wird angezeigt.</span><span class=&quot;ms&quot;>56ms</span></div>
+              <div class=&quot;act&quot;><span class=&quot;lbl&quot;><span class=&quot;chev&quot;>▸</span>Der Benutzer gibt standard_user ein.</span><span class=&quot;ms&quot;>34ms</span></div>
+              <div class=&quot;act&quot;><span class=&quot;lbl&quot;><span class=&quot;chev&quot;>▸</span>Das Feld Username ist mit standard_…</span><span class=&quot;ms&quot;>30ms</span></div>
+              <div class=&quot;act&quot;><span class=&quot;lbl&quot;><span class=&quot;chev&quot;>▸</span>Der Benutzer gibt secret_sauce ein.</span><span class=&quot;ms&quot;>28ms</span></div>
+              <div class=&quot;act&quot;><span class=&quot;lbl&quot;><span class=&quot;chev&quot;>▸</span>Das Feld Password ist mit secret_…</span><span class=&quot;ms&quot;>20ms</span></div>
+              <div class=&quot;act&quot;><span class=&quot;lbl&quot;><span class=&quot;chev&quot;>▸</span>Der Benutzer klickt auf Login.</span><span class=&quot;ms&quot;>77ms</span></div>
+              <div class=&quot;act&quot;><span class=&quot;lbl&quot;><span class=&quot;chev&quot;>▸</span>Die Produktseite wird angezeigt.</span><span class=&quot;ms&quot;>20ms</span></div>
+              <div class=&quot;act&quot;><span class=&quot;lbl&quot;><span class=&quot;chev&quot;>▸</span>Der Benutzer legt Sauce Labs Back…</span><span class=&quot;ms&quot;>82ms</span></div>
+              <div class=&quot;act&quot;><span class=&quot;lbl&quot;><span class=&quot;chev&quot;>▸</span>Das Warenkorb-Badge zeigt die An…</span><span class=&quot;ms&quot;>18ms</span></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class=&quot;why&quot;>
+    <div class=&quot;h&quot;>Wozu?</div>
+    <div class=&quot;why-card d&quot;><b>test.describe</b> – bündelt zusammengehörige Tests zu einer Suite. Sorgt für Ordnung und erlaubt gemeinsame Vorbereitung (Hooks).</div>
+    <div class=&quot;why-card t&quot;><b>test</b> – ein eigenständiger Testfall, der für sich besteht oder fehlschlägt. Die Einheit, die grün oder rot wird.</div>
+    <div class=&quot;why-card s&quot;><b>test.step</b> – teilt den Test in benannte Schritte. Im Trace siehst du sofort, welcher Schritt wie lange lief und wo es hakt.</div>
+  </div>
+
+</div>
+</div>
+</body>
+</html>
+"></iframe>
+<iframe class="frame" data-i="1" loading="eager" srcdoc="<!DOCTYPE html>
+<html lang=&quot;de&quot;>
+<head>
+<meta charset=&quot;UTF-8&quot;>
+<meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;>
+<title>Anatomie eines Playwright-Befehls</title>
+<link rel=&quot;preconnect&quot; href=&quot;https://fonts.googleapis.com&quot;>
+<link rel=&quot;preconnect&quot; href=&quot;https://fonts.gstatic.com&quot; crossorigin>
+<link href=&quot;https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap&quot; rel=&quot;stylesheet&quot;>
+<style>
+  :root{
+    --ink:#243044; --muted:#5d6b7d; --editor:#1e2228; --paper:#fff;
+    --c1:#e0891e; --c1t:#fbeed7; --c1d:#9a5e0d;
+    --c2:#3f6fb5; --c2t:#e4eefb; --c2d:#2c5290;
+    --c3:#7c5bbf; --c3t:#f0eafb; --c3d:#5a3f95;
+    --c4:#1597a0; --c4t:#ddf0f1; --c4d:#0f7a82;
+    --c5:#5e9c4e; --c5t:#e9f3e3; --c5d:#41702f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Nunito',&quot;Segoe UI&quot;,system-ui,Arial,sans-serif;color:var(--ink);
+    background:#dfe4ea;display:flex;align-items:center;justify-content:center;
+    min-height:100vh;padding:24px;
+  }
+  .slide-wrap{width:min(96vw,1280px);aspect-ratio:16/9;}
+  .slide{
+    width:100%;height:100%;background:var(--paper);border-radius:18px;
+    box-shadow:0 30px 70px -30px rgba(20,30,50,.45);
+    overflow:hidden;padding:28px 38px 22px;display:flex;flex-direction:column;
+  }
+  .eyebrow{color:var(--c5);font-weight:800;letter-spacing:3px;font-size:13px;text-transform:uppercase;}
+  .title{font-size:28px;font-weight:900;letter-spacing:-.4px;margin-top:2px;}
+
+  .editor{
+    background:var(--editor);border-radius:14px;padding:16px 22px;margin-top:14px;
+    font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  .codeline{display:flex;align-items:center;flex-wrap:wrap;gap:2px;font-size:16px;line-height:2.2;color:#cdd6df;}
+  .codeline + .codeline{margin-top:4px;}
+  .pn{color:#8a94a3;}
+  .tok{
+    display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+    border:1.8px solid transparent;border-radius:10px;padding:1px 9px 1px 4px;
+    color:#cdd6df;font-weight:500;transition:transform .15s ease, box-shadow .2s ease, background .2s ease, color .2s ease;
+  }
+  .tok:hover{transform:translateY(-2px);background:rgba(255,255,255,.06);}
+  .tok.active{color:#eef2f6;}
+  .tok .n{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:17px;height:17px;border-radius:50%;color:#fff;font-family:'Nunito';
+    font-size:11px;font-weight:800;flex:0 0 auto;animation:pulse 2.4s ease-in-out infinite;
+  }
+  .tok:hover .n,.tok.active .n{animation:none;}
+  .tok.active{transform:translateY(-2px) scale(1.05);box-shadow:0 0 0 3px rgba(255,255,255,.14),0 6px 16px -4px rgba(0,0,0,.5);}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0);}50%{box-shadow:0 0 0 4px rgba(255,255,255,.20);}}
+  .tok.c1 .n{background:var(--c1);} .tok.c1.active{border-color:var(--c1);background:rgba(224,137,30,.16);}
+  .tok.c2 .n{background:var(--c2);} .tok.c2.active{border-color:var(--c2);background:rgba(63,111,181,.16);}
+  .tok.c3 .n{background:var(--c3);} .tok.c3.active{border-color:var(--c3);background:rgba(124,91,191,.18);}
+  .tok.c4 .n{background:var(--c4);} .tok.c4.active{border-color:var(--c4);background:rgba(21,151,160,.16);}
+  .tok.c5 .n{background:var(--c5);} .tok.c5.active{border-color:var(--c5);background:rgba(94,156,78,.18);}
+  .endtag{margin-left:10px;font-family:'Nunito';font-size:11px;font-weight:800;padding:2px 9px;border-radius:20px;color:#cdd6df;border:1.5px solid #3a424d;}
+  .endtag.ok{color:#a8e98c;border-color:#3d5b32;background:rgba(94,156,78,.12);}
+
+  .subbar{display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:12px;}
+  .hinttext{font-size:12.5px;font-weight:800;color:var(--muted);}
+  .controls{display:flex;gap:8px;}
+  .btn{font-family:'Nunito';font-size:12px;font-weight:800;border:1.5px solid #cdd3da;background:#fff;color:var(--muted);padding:5px 13px;border-radius:20px;cursor:pointer;transition:all .15s;}
+  .btn:hover{border-color:#9aa6b5;color:var(--ink);}
+
+  .cards{display:flex;gap:10px;margin-top:9px;}
+  .card{
+    flex:1;border:2px solid;border-radius:12px;padding:9px 11px;height:118px;
+    display:flex;flex-direction:column;cursor:pointer;opacity:.45;
+    transition:opacity .3s ease, box-shadow .3s ease, transform .25s ease;
+  }
+  .card.show{opacity:1;box-shadow:0 8px 22px -10px rgba(0,0,0,.28);transform:translateY(-2px);}
+  .card .ch{display:flex;align-items:center;gap:7px;margin-bottom:5px;}
+  .card .cn{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:50%;color:#fff;font-size:11px;font-weight:800;flex:0 0 auto;}
+  .card .nm{font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:700;}
+  .card .tx{font-size:11.5px;font-weight:600;color:#3a4250;line-height:1.34;opacity:0;transform:translateY(6px);transition:opacity .3s ease, transform .3s ease;}
+  .card.show .tx{opacity:1;transform:none;}
+  .card .tx b{color:var(--ink);font-weight:800;}
+  .card .hint{margin-top:auto;font-size:10.5px;font-weight:800;color:#aeb6c0;}
+  .card.show .hint{display:none;}
+  .card.k1{border-color:var(--c1t);} .card.k1 .cn{background:var(--c1);} .card.k1 .nm{color:var(--c1d);} .card.k1.show{border-color:var(--c1);}
+  .card.k2{border-color:var(--c2t);} .card.k2 .cn{background:var(--c2);} .card.k2 .nm{color:var(--c2d);} .card.k2.show{border-color:var(--c2);}
+  .card.k3{border-color:var(--c3t);} .card.k3 .cn{background:var(--c3);} .card.k3 .nm{color:var(--c3d);} .card.k3.show{border-color:var(--c3);}
+  .card.k4{border-color:var(--c4t);} .card.k4 .cn{background:var(--c4);} .card.k4 .nm{color:var(--c4d);} .card.k4.show{border-color:var(--c4);}
+  .card.k5{border-color:var(--c5t);} .card.k5 .cn{background:var(--c5);} .card.k5 .nm{color:var(--c5d);} .card.k5.show{border-color:var(--c5);}
+
+  /* further methods */
+  .methods{margin-top:12px;display:flex;flex-direction:column;gap:7px;}
+  .mrow{display:flex;align-items:flex-start;gap:12px;opacity:.4;transition:opacity .3s ease;}
+  .mrow.show{opacity:1;}
+  .mrow .lab{flex:0 0 132px;font-size:12px;font-weight:900;display:flex;align-items:center;gap:7px;padding-top:3px;}
+  .mrow .lab .dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;}
+  .mrow.f .lab .dot{background:var(--c3);} .mrow.f .lab{color:var(--c3d);}
+  .mrow.a .lab .dot{background:var(--c5);} .mrow.a .lab{color:var(--c5d);}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .chip{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;border:1.5px solid;border-radius:8px;padding:2px 9px;display:inline-flex;gap:6px;align-items:baseline;background:#fff;}
+  .chip .g{font-family:'Nunito';font-size:10px;font-weight:700;color:var(--muted);}
+  .mrow.f .chip{border-color:#d8c9ee;color:var(--c3d);}
+  .mrow.a .chip{border-color:#c2dcb6;color:var(--c5d);}
+  .mrow.f .chip.used{background:var(--c3);color:#fff;border-color:var(--c3);}
+  .mrow.a .chip.used{background:var(--c5);color:#fff;border-color:var(--c5);}
+  .chip.used .g{color:rgba(255,255,255,.85);}
+
+  @media (prefers-reduced-motion:reduce){.tok .n{animation:none;}}
+</style>
+</head>
+<body>
+<div class=&quot;slide-wrap&quot;>
+<div class=&quot;slide&quot;>
+
+  <div class=&quot;title&quot;>Einen Playwright-Befehl St&uuml;ck f&uuml;r St&uuml;ck lesen</div>
+
+  <div class=&quot;editor&quot;>
+    <div class=&quot;codeline&quot;>
+      <span class=&quot;tok c1&quot; data-step=&quot;1&quot;><span class=&quot;n&quot;>1</span>await</span>
+      <span class=&quot;tok c2&quot; data-step=&quot;2&quot;><span class=&quot;n&quot;>2</span>page</span><span class=&quot;pn&quot;>.</span><span class=&quot;tok c3&quot; data-step=&quot;3&quot;><span class=&quot;n&quot;>3</span>locator</span><span class=&quot;pn&quot;>(</span><span class=&quot;tok c4&quot; data-step=&quot;4&quot;><span class=&quot;n&quot;>4</span>'[data-test=&quot;login-button&quot;]'</span><span class=&quot;pn&quot;>)</span><span class=&quot;pn&quot;>.</span><span class=&quot;tok c5&quot; data-step=&quot;5&quot;><span class=&quot;n&quot;>5</span>click()</span><span class=&quot;pn&quot;>;</span>
+      <span class=&quot;endtag&quot;>per CSS-Selektor</span>
+    </div>
+    <div class=&quot;codeline&quot;>
+      <span class=&quot;tok c1&quot; data-step=&quot;1&quot;><span class=&quot;n&quot;>1</span>await</span>
+      <span class=&quot;tok c2&quot; data-step=&quot;2&quot;><span class=&quot;n&quot;>2</span>page</span><span class=&quot;pn&quot;>.</span><span class=&quot;tok c3&quot; data-step=&quot;3&quot;><span class=&quot;n&quot;>3</span>getByRole</span><span class=&quot;pn&quot;>(</span><span class=&quot;tok c4&quot; data-step=&quot;4&quot;><span class=&quot;n&quot;>4</span>'button', { name: 'Einstellungen speichern' }</span><span class=&quot;pn&quot;>)</span><span class=&quot;pn&quot;>.</span><span class=&quot;tok c5&quot; data-step=&quot;5&quot;><span class=&quot;n&quot;>5</span>click()</span><span class=&quot;pn&quot;>;</span>
+      <span class=&quot;endtag ok&quot;>per Rolle · empfohlen</span>
+    </div>
+  </div>
+
+  <div class=&quot;subbar&quot;>
+    <div class=&quot;hinttext&quot;>Klicke die nummerierten Bausteine an &mdash; <b>3</b> zeigt weitere Finde-Methoden, <b>5</b> weitere Aktionen.</div>
+    <div class=&quot;controls&quot;>
+      <button class=&quot;btn&quot; id=&quot;all&quot;>Alle anzeigen</button>
+      <button class=&quot;btn&quot; id=&quot;reset&quot;>Zur&uuml;cksetzen</button>
+    </div>
+  </div>
+
+  <div class=&quot;cards&quot;>
+    <div class=&quot;card k1&quot; data-step=&quot;1&quot;>
+      <div class=&quot;ch&quot;><span class=&quot;cn&quot;>1</span><span class=&quot;nm&quot;>await</span></div>
+      <div class=&quot;tx&quot;>Wartet, bis die Aktion <b>fertig</b> ist, bevor es weitergeht. Playwright arbeitet asynchron.</div>
+      <div class=&quot;hint&quot;>+ klicken</div>
+    </div>
+    <div class=&quot;card k2&quot; data-step=&quot;2&quot;>
+      <div class=&quot;ch&quot;><span class=&quot;cn&quot;>2</span><span class=&quot;nm&quot;>page</span></div>
+      <div class=&quot;tx&quot;>Die <b>Seite / der Browser-Tab</b>, den Playwright gerade steuert.</div>
+      <div class=&quot;hint&quot;>+ klicken</div>
+    </div>
+    <div class=&quot;card k3&quot; data-step=&quot;3&quot;>
+      <div class=&quot;ch&quot;><span class=&quot;cn&quot;>3</span><span class=&quot;nm&quot;>locator / getByRole</span></div>
+      <div class=&quot;tx&quot;>Die <b>Methode</b>, die das Element findet. Weitere Finde-Methoden unten.</div>
+      <div class=&quot;hint&quot;>+ klicken</div>
+    </div>
+    <div class=&quot;card k4&quot; data-step=&quot;4&quot;>
+      <div class=&quot;ch&quot;><span class=&quot;cn&quot;>4</span><span class=&quot;nm&quot;>Argument</span></div>
+      <div class=&quot;tx&quot;><b>Was</b> gesucht wird. CSS: das Attribut <b>data-test</b>. Rolle: Typ <b>'button'</b> + sichtbarer <b>name</b>.</div>
+      <div class=&quot;hint&quot;>+ klicken</div>
+    </div>
+    <div class=&quot;card k5&quot; data-step=&quot;5&quot;>
+      <div class=&quot;ch&quot;><span class=&quot;cn&quot;>5</span><span class=&quot;nm&quot;>.click()</span></div>
+      <div class=&quot;tx&quot;>Die <b>Aktion</b> auf dem Element. Weitere Aktionen unten.</div>
+      <div class=&quot;hint&quot;>+ klicken</div>
+    </div>
+  </div>
+
+  <div class=&quot;methods&quot;>
+    <div class=&quot;mrow f&quot; data-row=&quot;3&quot;>
+      <div class=&quot;lab&quot;><span class=&quot;dot&quot;></span>Element finden</div>
+      <div class=&quot;chips&quot;>
+        <span class=&quot;chip used&quot;>getByRole<span class=&quot;g&quot;>Rolle</span></span>
+        <span class=&quot;chip&quot;>getByText<span class=&quot;g&quot;>Text</span></span>
+        <span class=&quot;chip&quot;>getByLabel<span class=&quot;g&quot;>Label</span></span>
+        <span class=&quot;chip&quot;>getByPlaceholder<span class=&quot;g&quot;>Platzhalter</span></span>
+        <span class=&quot;chip&quot;>getByTestId<span class=&quot;g&quot;>data-testid</span></span>
+        <span class=&quot;chip&quot;>getByAltText<span class=&quot;g&quot;>Alt-Text</span></span>
+        <span class=&quot;chip&quot;>getByTitle<span class=&quot;g&quot;>title</span></span>
+        <span class=&quot;chip&quot;>locator<span class=&quot;g&quot;>CSS / XPath</span></span>
+      </div>
+    </div>
+    <div class=&quot;mrow a&quot; data-row=&quot;5&quot;>
+      <div class=&quot;lab&quot;><span class=&quot;dot&quot;></span>Aktion ausf&uuml;hren</div>
+      <div class=&quot;chips&quot;>
+        <span class=&quot;chip used&quot;>click<span class=&quot;g&quot;>Klick</span></span>
+        <span class=&quot;chip&quot;>fill<span class=&quot;g&quot;>Text eingeben</span></span>
+        <span class=&quot;chip&quot;>check / uncheck<span class=&quot;g&quot;>Checkbox</span></span>
+        <span class=&quot;chip&quot;>selectOption<span class=&quot;g&quot;>Dropdown</span></span>
+        <span class=&quot;chip&quot;>hover<span class=&quot;g&quot;>Maus dr&uuml;ber</span></span>
+        <span class=&quot;chip&quot;>press<span class=&quot;g&quot;>Taste</span></span>
+        <span class=&quot;chip&quot;>dblclick<span class=&quot;g&quot;>Doppelklick</span></span>
+        <span class=&quot;chip&quot;>setInputFiles<span class=&quot;g&quot;>Datei-Upload</span></span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+  function setStep(step, on){
+    var card = document.querySelector('.card[data-step=&quot;'+step+'&quot;]');
+    var toks = document.querySelectorAll('.tok[data-step=&quot;'+step+'&quot;]');
+    card.classList.toggle('show', on);
+    toks.forEach(function(t){ t.classList.toggle('active', on); });
+    var row = document.querySelector('.mrow[data-row=&quot;'+step+'&quot;]');
+    if(row){ row.classList.toggle('show', on); }
+  }
+  function toggleStep(step){
+    var card = document.querySelector('.card[data-step=&quot;'+step+'&quot;]');
+    setStep(step, !card.classList.contains('show'));
+  }
+  document.querySelectorAll('.tok').forEach(function(t){
+    t.addEventListener('click', function(){ toggleStep(t.dataset.step); });
+  });
+  document.querySelectorAll('.card').forEach(function(c){
+    c.addEventListener('click', function(){ toggleStep(c.dataset.step); });
+  });
+  document.getElementById('all').addEventListener('click', function(){
+    ['1','2','3','4','5'].forEach(function(s){ setStep(s, true); });
+  });
+  document.getElementById('reset').addEventListener('click', function(){
+    ['1','2','3','4','5'].forEach(function(s){ setStep(s, false); });
+  });
+</script>
+</body>
+</html>
+"></iframe>
+<iframe class="frame" data-i="2" loading="eager" srcdoc="<!DOCTYPE html>
+<html lang=&quot;de&quot;>
+<head>
+<meta charset=&quot;UTF-8&quot;>
+<meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;>
+<title>Node.js – Folie 1</title>
+<link rel=&quot;preconnect&quot; href=&quot;https://fonts.googleapis.com&quot;>
+<link rel=&quot;preconnect&quot; href=&quot;https://fonts.gstatic.com&quot; crossorigin>
+<link href=&quot;https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap&quot; rel=&quot;stylesheet&quot;>
+<style>
+  :root{
+    --ink:#243044;            /* dark navy text */
+    --node-green:#5e9c4e;
+    --node-green-dark:#4a7d3e;
+    --js-yellow:#f7df1e;
+    --browser-blue:#a7c4e6;
+    --browser-blue-d:#7fa6d6;
+    --browser-window:#3f5b86;
+    --card-green:#eef6e9;     --card-green-b:#9cc78a;
+    --card-blue:#e9f1fb;      --card-blue-b:#8fb4e0;
+    --card-purple:#f2ecfb;    --card-purple-b:#b69cdf;
+    --terminal:#2b2f36;
+    --paper:#ffffff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Nunito',&quot;Segoe UI&quot;,system-ui,Arial,sans-serif;
+    background:#dfe4ea;
+    display:flex;align-items:center;justify-content:center;
+    min-height:100vh;padding:24px;
+  }
+  /* Slide is 1280x720 and scales to fit the window */
+  .slide-wrap{
+    width:min(96vw,1280px);
+    aspect-ratio:16/9;
+  }
+  .slide{
+    width:100%;height:100%;
+    background:var(--paper);
+    border-radius:18px;
+    box-shadow:0 30px 70px -30px rgba(20,30,50,.45);
+    overflow:hidden;
+    position:relative;
+  }
+  svg{display:block;width:100%;height:100%;}
+
+  .title{ font-weight:900; letter-spacing:-.5px; }
+
+  /* ---- cart rolling animation ---- */
+  @keyframes roll{
+    0%   {transform:translateX(0px);}
+    45%  {transform:translateX(34px);}
+    55%  {transform:translateX(34px);}
+    100% {transform:translateX(0px);}
+  }
+  @keyframes spin{
+    from{transform:rotate(0deg);} to{transform:rotate(360deg);}
+  }
+  @keyframes puff{
+    0%,100%{opacity:0; transform:translateX(0) scale(.8);}
+    40%   {opacity:.9; transform:translateX(-14px) scale(1.05);}
+    70%   {opacity:0; transform:translateX(-26px) scale(1.2);}
+  }
+  @keyframes dash{
+    0%,100%{opacity:.25; transform:translateX(0);}
+    50%    {opacity:.9;  transform:translateX(-10px);}
+  }
+  #cart{ animation:roll 3.4s ease-in-out infinite; transform-box:fill-box; }
+  .wheel{ animation:spin 1.7s linear infinite; transform-box:fill-box; transform-origin:center; }
+  #puff{ animation:puff 3.4s ease-in-out infinite; transform-box:fill-box; }
+  .speed{ animation:dash 3.4s ease-in-out infinite; transform-box:fill-box; }
+  .speed:nth-of-type(2){ animation-delay:.12s; }
+  .speed:nth-of-type(3){ animation-delay:.24s; }
+
+  @media (prefers-reduced-motion: reduce){
+    #cart,.wheel,#puff,.speed{ animation:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class=&quot;slide-wrap&quot;>
+<div class=&quot;slide&quot;>
+<svg viewBox=&quot;0 0 1280 720&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot; role=&quot;img&quot;
+     aria-label=&quot;Node.js lässt JavaScript außerhalb des Browsers laufen&quot;>
+
+  <!-- ================= TITLE ================= -->
+  <text class=&quot;title&quot; x=&quot;640&quot; y=&quot;78&quot; text-anchor=&quot;middle&quot; font-size=&quot;50&quot;>
+    <tspan fill=&quot;var(--node-green)&quot;>Node.js</tspan><tspan fill=&quot;var(--ink)&quot;> lässt </tspan><tspan fill=&quot;#e0a90c&quot;>JavaScript</tspan>
+  </text>
+  <text class=&quot;title&quot; x=&quot;640&quot; y=&quot;132&quot; text-anchor=&quot;middle&quot; font-size=&quot;50&quot; fill=&quot;var(--ink)&quot;>außerhalb des Browsers laufen</text>
+
+  <!-- ================= BROWSER (house) ================= -->
+  <g>
+    <!-- roof -->
+    <path d=&quot;M150 250 L300 175 L450 250 Z&quot; fill=&quot;var(--browser-blue)&quot; stroke=&quot;var(--browser-blue-d)&quot; stroke-width=&quot;3&quot; stroke-linejoin=&quot;round&quot;/>
+    <!-- body -->
+    <rect x=&quot;150&quot; y=&quot;250&quot; width=&quot;300&quot; height=&quot;300&quot; rx=&quot;8&quot; fill=&quot;var(--browser-blue)&quot; stroke=&quot;var(--browser-blue-d)&quot; stroke-width=&quot;3&quot;/>
+    <!-- globe -->
+    <g transform=&quot;translate(300,222)&quot; stroke=&quot;var(--browser-window)&quot; stroke-width=&quot;2.2&quot; fill=&quot;none&quot;>
+      <circle r=&quot;20&quot;/>
+      <ellipse rx=&quot;8&quot; ry=&quot;20&quot;/>
+      <line x1=&quot;-20&quot; y1=&quot;0&quot; x2=&quot;20&quot; y2=&quot;0&quot;/>
+      <path d=&quot;M-17 -10 H17 M-17 10 H17&quot;/>
+    </g>
+    <text x=&quot;300&quot; y=&quot;300&quot; text-anchor=&quot;middle&quot; font-size=&quot;34&quot; font-weight=&quot;800&quot; fill=&quot;var(--ink)&quot;>Browser</text>
+    <!-- inner window -->
+    <rect x=&quot;190&quot; y=&quot;320&quot; width=&quot;220&quot; height=&quot;210&quot; rx=&quot;6&quot; fill=&quot;var(--browser-window)&quot;/>
+    <rect x=&quot;190&quot; y=&quot;320&quot; width=&quot;220&quot; height=&quot;210&quot; rx=&quot;6&quot; fill=&quot;none&quot; stroke=&quot;#2c4467&quot; stroke-width=&quot;3&quot;/>
+
+    <!-- JS yellow cube sitting inside window -->
+    <g transform=&quot;translate(298,455)&quot;>
+      <!-- top face -->
+      <path d=&quot;M-70 -42 L0 -70 L70 -42 L0 -14 Z&quot; fill=&quot;#fbe85a&quot; stroke=&quot;#caa800&quot; stroke-width=&quot;2.5&quot; stroke-linejoin=&quot;round&quot;/>
+      <!-- left face -->
+      <path d=&quot;M-70 -42 L-70 48 L0 76 L0 -14 Z&quot; fill=&quot;#e9c70d&quot; stroke=&quot;#caa800&quot; stroke-width=&quot;2.5&quot; stroke-linejoin=&quot;round&quot;/>
+      <!-- right face -->
+      <path d=&quot;M70 -42 L70 48 L0 76 L0 -14 Z&quot; fill=&quot;var(--js-yellow)&quot; stroke=&quot;#caa800&quot; stroke-width=&quot;2.5&quot; stroke-linejoin=&quot;round&quot;/>
+      <!-- JS label panel on front-right face -->
+      <rect x=&quot;14&quot; y=&quot;-2&quot; width=&quot;44&quot; height=&quot;40&quot; rx=&quot;5&quot; fill=&quot;#1f1f1f&quot;/>
+      <text x=&quot;36&quot; y=&quot;29&quot; text-anchor=&quot;middle&quot; font-size=&quot;26&quot; font-weight=&quot;900&quot; fill=&quot;var(--js-yellow)&quot;>JS</text>
+      <text x=&quot;0&quot; y=&quot;62&quot; text-anchor=&quot;middle&quot; font-size=&quot;16&quot; font-weight=&quot;800&quot; fill=&quot;#5a4b00&quot;>JavaScript</text>
+    </g>
+  </g>
+
+  <!-- transfer arrow -->
+  <g transform=&quot;translate(478,455)&quot;>
+    <path d=&quot;M0 0 H60&quot; stroke=&quot;var(--ink)&quot; stroke-width=&quot;9&quot; stroke-linecap=&quot;round&quot;/>
+    <path d=&quot;M52 -16 L78 0 L52 16 Z&quot; fill=&quot;var(--ink)&quot;/>
+  </g>
+
+  <!-- ================= NODE.JS CART (animated) ================= -->
+  <g id=&quot;cart&quot;>
+    <!-- speed lines -->
+    <line class=&quot;speed&quot; x1=&quot;565&quot; y1=&quot;430&quot; x2=&quot;610&quot; y2=&quot;430&quot; stroke=&quot;#9aa6b5&quot; stroke-width=&quot;6&quot; stroke-linecap=&quot;round&quot;/>
+    <line class=&quot;speed&quot; x1=&quot;560&quot; y1=&quot;455&quot; x2=&quot;600&quot; y2=&quot;455&quot; stroke=&quot;#9aa6b5&quot; stroke-width=&quot;6&quot; stroke-linecap=&quot;round&quot;/>
+    <line class=&quot;speed&quot; x1=&quot;565&quot; y1=&quot;480&quot; x2=&quot;608&quot; y2=&quot;480&quot; stroke=&quot;#9aa6b5&quot; stroke-width=&quot;6&quot; stroke-linecap=&quot;round&quot;/>
+
+    <!-- flatbed -->
+    <rect x=&quot;618&quot; y=&quot;560&quot; width=&quot;290&quot; height=&quot;20&quot; rx=&quot;6&quot; fill=&quot;#5b6470&quot;/>
+    <path d=&quot;M618 560 L600 590 H928 L910 560 Z&quot; fill=&quot;#454d57&quot;/>
+
+    <!-- suitcase handle -->
+    <path d=&quot;M735 360 q40 -44 80 0&quot; fill=&quot;none&quot; stroke=&quot;#3b4149&quot; stroke-width=&quot;11&quot; stroke-linecap=&quot;round&quot;/>
+
+    <!-- suitcase body -->
+    <rect x=&quot;648&quot; y=&quot;378&quot; width=&quot;252&quot; height=&quot;182&quot; rx=&quot;18&quot; fill=&quot;var(--node-green)&quot; stroke=&quot;var(--node-green-dark)&quot; stroke-width=&quot;4&quot;/>
+    <rect x=&quot;648&quot; y=&quot;378&quot; width=&quot;252&quot; height=&quot;182&quot; rx=&quot;18&quot; fill=&quot;none&quot; stroke=&quot;#ffffff&quot; stroke-opacity=&quot;.12&quot; stroke-width=&quot;2&quot; transform=&quot;translate(3,3)&quot;/>
+    <!-- latches -->
+    <rect x=&quot;666&quot; y=&quot;404&quot; width=&quot;20&quot; height=&quot;16&quot; rx=&quot;3&quot; fill=&quot;#3b4149&quot;/>
+    <rect x=&quot;666&quot; y=&quot;520&quot; width=&quot;20&quot; height=&quot;16&quot; rx=&quot;3&quot; fill=&quot;#3b4149&quot;/>
+
+    <text x=&quot;780&quot; y=&quot;455&quot; text-anchor=&quot;middle&quot; font-size=&quot;40&quot; font-weight=&quot;900&quot; fill=&quot;#ffffff&quot;>Node.js</text>
+
+    <!-- node hexagon logo -->
+    <g transform=&quot;translate(780,508)&quot;>
+      <path d=&quot;M0 -30 L26 -15 L26 15 L0 30 L-26 15 L-26 -15 Z&quot; fill=&quot;#ffffff&quot; opacity=&quot;.95&quot;/>
+      <text x=&quot;0&quot; y=&quot;11&quot; text-anchor=&quot;middle&quot; font-size=&quot;26&quot; font-weight=&quot;900&quot; fill=&quot;var(--node-green-dark)&quot; font-style=&quot;italic&quot;>JS</text>
+    </g>
+
+    <!-- wheels -->
+    <g>
+      <circle cx=&quot;668&quot; cy=&quot;600&quot; r=&quot;26&quot; fill=&quot;#3b4149&quot;/>
+      <g class=&quot;wheel&quot; style=&quot;transform-origin:668px 600px&quot;>
+        <circle cx=&quot;668&quot; cy=&quot;600&quot; r=&quot;26&quot; fill=&quot;none&quot; stroke=&quot;#222&quot; stroke-width=&quot;3&quot;/>
+        <circle cx=&quot;668&quot; cy=&quot;600&quot; r=&quot;9&quot; fill=&quot;#6b7480&quot;/>
+        <line x1=&quot;668&quot; y1=&quot;578&quot; x2=&quot;668&quot; y2=&quot;622&quot; stroke=&quot;#6b7480&quot; stroke-width=&quot;3&quot;/>
+        <line x1=&quot;646&quot; y1=&quot;600&quot; x2=&quot;690&quot; y2=&quot;600&quot; stroke=&quot;#6b7480&quot; stroke-width=&quot;3&quot;/>
+      </g>
+    </g>
+    <g>
+      <circle cx=&quot;862&quot; cy=&quot;600&quot; r=&quot;26&quot; fill=&quot;#3b4149&quot;/>
+      <g class=&quot;wheel&quot; style=&quot;transform-origin:862px 600px&quot;>
+        <circle cx=&quot;862&quot; cy=&quot;600&quot; r=&quot;26&quot; fill=&quot;none&quot; stroke=&quot;#222&quot; stroke-width=&quot;3&quot;/>
+        <circle cx=&quot;862&quot; cy=&quot;600&quot; r=&quot;9&quot; fill=&quot;#6b7480&quot;/>
+        <line x1=&quot;862&quot; y1=&quot;578&quot; x2=&quot;862&quot; y2=&quot;622&quot; stroke=&quot;#6b7480&quot; stroke-width=&quot;3&quot;/>
+        <line x1=&quot;840&quot; y1=&quot;600&quot; x2=&quot;884&quot; y2=&quot;600&quot; stroke=&quot;#6b7480&quot; stroke-width=&quot;3&quot;/>
+      </g>
+    </g>
+
+    <!-- exhaust puff -->
+    <g id=&quot;puff&quot; style=&quot;transform-origin:610px 615px&quot;>
+      <circle cx=&quot;600&quot; cy=&quot;615&quot; r=&quot;10&quot; fill=&quot;#cfd6de&quot;/>
+      <circle cx=&quot;585&quot; cy=&quot;608&quot; r=&quot;13&quot; fill=&quot;#dde3ea&quot;/>
+      <circle cx=&quot;588&quot; cy=&quot;624&quot; r=&quot;9&quot; fill=&quot;#dde3ea&quot;/>
+    </g>
+  </g>
+
+  <!-- ground shadow -->
+  <ellipse cx=&quot;765&quot; cy=&quot;638&quot; rx=&quot;170&quot; ry=&quot;14&quot; fill=&quot;#000&quot; opacity=&quot;.06&quot;/>
+
+  <!-- ================= CONNECTOR ARROWS ================= -->
+  <g fill=&quot;none&quot; stroke=&quot;var(--ink)&quot; stroke-width=&quot;6&quot; stroke-linecap=&quot;round&quot;>
+    <path d=&quot;M912 470 H960 V300 H1010&quot;/>
+    <path d=&quot;M912 470 H1010&quot;/>
+    <path d=&quot;M912 470 H960 V640 H1010&quot;/>
+  </g>
+  <g fill=&quot;var(--ink)&quot;>
+    <path d=&quot;M1002 286 L1026 300 L1002 314 Z&quot;/>
+    <path d=&quot;M1002 456 L1026 470 L1002 484 Z&quot;/>
+    <path d=&quot;M1002 626 L1026 640 L1002 654 Z&quot;/>
+  </g>
+
+  <!-- ================= RIGHT CARDS ================= -->
+  <!-- Terminal -->
+  <g>
+    <rect x=&quot;1036&quot; y=&quot;248&quot; width=&quot;218&quot; height=&quot;104&quot; rx=&quot;16&quot; fill=&quot;var(--card-green)&quot; stroke=&quot;var(--card-green-b)&quot; stroke-width=&quot;2.5&quot;/>
+    <rect x=&quot;1058&quot; y=&quot;270&quot; width=&quot;58&quot; height=&quot;48&quot; rx=&quot;6&quot; fill=&quot;var(--terminal)&quot;/>
+    <circle cx=&quot;1066&quot; cy=&quot;280&quot; r=&quot;2.6&quot; fill=&quot;#9aa6b5&quot;/><circle cx=&quot;1074&quot; cy=&quot;280&quot; r=&quot;2.6&quot; fill=&quot;#9aa6b5&quot;/><circle cx=&quot;1082&quot; cy=&quot;280&quot; r=&quot;2.6&quot; fill=&quot;#9aa6b5&quot;/>
+    <path d=&quot;M1064 296 l8 6 l-8 6 M1080 308 h10&quot; stroke=&quot;#7fd17f&quot; stroke-width=&quot;2.6&quot; fill=&quot;none&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;/>
+    <text x=&quot;1132&quot; y=&quot;298&quot; font-size=&quot;26&quot; font-weight=&quot;800&quot; fill=&quot;var(--ink)&quot;>Terminal</text>
+    <text x=&quot;1132&quot; y=&quot;324&quot; font-size=&quot;17&quot; font-weight=&quot;600&quot; fill=&quot;#5d6b7d&quot;>Skripte</text>
+  </g>
+  <!-- Server -->
+  <g>
+    <rect x=&quot;1036&quot; y=&quot;418&quot; width=&quot;218&quot; height=&quot;104&quot; rx=&quot;16&quot; fill=&quot;var(--card-blue)&quot; stroke=&quot;var(--card-blue-b)&quot; stroke-width=&quot;2.5&quot;/>
+    <g transform=&quot;translate(1058,438)&quot;>
+      <rect x=&quot;0&quot; y=&quot;0&quot;  width=&quot;58&quot; height=&quot;18&quot; rx=&quot;3&quot; fill=&quot;#3f5b86&quot;/>
+      <rect x=&quot;0&quot; y=&quot;23&quot; width=&quot;58&quot; height=&quot;18&quot; rx=&quot;3&quot; fill=&quot;#3f5b86&quot;/>
+      <rect x=&quot;0&quot; y=&quot;46&quot; width=&quot;58&quot; height=&quot;18&quot; rx=&quot;3&quot; fill=&quot;#3f5b86&quot;/>
+      <circle cx=&quot;48&quot; cy=&quot;9&quot;  r=&quot;2.4&quot; fill=&quot;#7fd17f&quot;/>
+      <circle cx=&quot;48&quot; cy=&quot;32&quot; r=&quot;2.4&quot; fill=&quot;#7fd17f&quot;/>
+      <circle cx=&quot;48&quot; cy=&quot;55&quot; r=&quot;2.4&quot; fill=&quot;#7fd17f&quot;/>
+    </g>
+    <text x=&quot;1132&quot; y=&quot;468&quot; font-size=&quot;26&quot; font-weight=&quot;800&quot; fill=&quot;var(--ink)&quot;>Server</text>
+    <text x=&quot;1132&quot; y=&quot;494&quot; font-size=&quot;17&quot; font-weight=&quot;600&quot; fill=&quot;#5d6b7d&quot;>Backend-Apps</text>
+  </g>
+  <!-- Automation -->
+  <g>
+    <rect x=&quot;1036&quot; y=&quot;588&quot; width=&quot;218&quot; height=&quot;104&quot; rx=&quot;16&quot; fill=&quot;var(--card-purple)&quot; stroke=&quot;var(--card-purple-b)&quot; stroke-width=&quot;2.5&quot;/>
+    <g transform=&quot;translate(1058,632) scale(.82)&quot; fill=&quot;#7c5bbf&quot;>
+      <circle r=&quot;13&quot; fill=&quot;none&quot; stroke=&quot;#7c5bbf&quot; stroke-width=&quot;6&quot;/>
+      <g>
+        <rect x=&quot;-3&quot; y=&quot;-22&quot; width=&quot;6&quot; height=&quot;9&quot; rx=&quot;2&quot;/><rect x=&quot;-3&quot; y=&quot;13&quot; width=&quot;6&quot; height=&quot;9&quot; rx=&quot;2&quot;/>
+        <rect x=&quot;-22&quot; y=&quot;-3&quot; width=&quot;9&quot; height=&quot;6&quot; rx=&quot;2&quot;/><rect x=&quot;13&quot; y=&quot;-3&quot; width=&quot;9&quot; height=&quot;6&quot; rx=&quot;2&quot;/>
+        <rect x=&quot;-19&quot; y=&quot;-19&quot; width=&quot;7&quot; height=&quot;7&quot; rx=&quot;2&quot; transform=&quot;rotate(45)&quot;/>
+        <rect x=&quot;12&quot; y=&quot;12&quot; width=&quot;7&quot; height=&quot;7&quot; rx=&quot;2&quot; transform=&quot;rotate(45)&quot;/>
+      </g>
+    </g>
+    <text x=&quot;1082&quot; y=&quot;624&quot; font-size=&quot;18&quot; font-weight=&quot;800&quot; fill=&quot;var(--ink)&quot;>Automatisierungs-</text>
+    <text x=&quot;1082&quot; y=&quot;647&quot; font-size=&quot;18&quot; font-weight=&quot;800&quot; fill=&quot;var(--ink)&quot;>tools</text>
+    <text x=&quot;1082&quot; y=&quot;672&quot; font-size=&quot;13&quot; font-weight=&quot;600&quot; fill=&quot;#5d6b7d&quot;>Playwright, Build-Tools</text>
+  </g>
+
+</svg>
+</div>
+</div>
+</body>
+</html>
+"></iframe>
+<iframe class="frame" data-i="3" loading="eager" srcdoc="<!DOCTYPE html>
+<html lang=&quot;de&quot;>
+<head>
+<meta charset=&quot;UTF-8&quot;>
+<meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;>
+<title>node · npm · npx – das Liefer-Team</title>
+<link rel=&quot;preconnect&quot; href=&quot;https://fonts.googleapis.com&quot;>
+<link rel=&quot;preconnect&quot; href=&quot;https://fonts.gstatic.com&quot; crossorigin>
+<link href=&quot;https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap&quot; rel=&quot;stylesheet&quot;>
+<style>
+  :root{
+    --ink:#243044; --muted:#5d6b7d;
+    --green:#5e9c4e; --green-d:#4a7d3e; --green-tint:#eef6e9; --green-bd:#c3deb4;
+    --blue:#3f6fb5;  --blue-d:#345d99;  --blue-tint:#e9f1fb;  --blue-bd:#aac6e8;
+    --purple:#7c5bbf;--purple-d:#5f449b;--purple-tint:#f1ecfb;--purple-bd:#cdbcec;
+    --term:#23282e; --paper:#fff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Nunito',&quot;Segoe UI&quot;,system-ui,Arial,sans-serif;color:var(--ink);
+    background:#dfe4ea;display:flex;align-items:center;justify-content:center;
+    min-height:100vh;padding:24px;
+  }
+  .slide-wrap{width:min(96vw,1280px);aspect-ratio:16/9;}
+  .slide{
+    width:100%;height:100%;background:var(--paper);border-radius:18px;
+    box-shadow:0 30px 70px -30px rgba(20,30,50,.45);
+    overflow:hidden;padding:34px 40px 30px;display:flex;flex-direction:column;
+  }
+  .eyebrow{color:var(--green);font-weight:800;letter-spacing:3px;font-size:14px;text-transform:uppercase;}
+  .title{font-size:34px;font-weight:900;letter-spacing:-.5px;margin-top:4px;}
+  .title .g{color:var(--green);} .title .b{color:var(--blue);} .title .p{color:var(--purple);}
+
+  .row{flex:1;display:flex;align-items:stretch;gap:6px;margin-top:20px;min-height:0;}
+
+  .col{
+    flex:1;border:2.5px solid;border-radius:18px;padding:16px 16px 18px;
+    display:flex;flex-direction:column;
+  }
+  .col.node{background:var(--green-tint);border-color:var(--green-bd);}
+  .col.npm{background:var(--blue-tint);border-color:var(--blue-bd);}
+  .col.npx{background:var(--purple-tint);border-color:var(--purple-bd);}
+
+  .badge{
+    align-self:flex-start;font-weight:900;font-size:22px;letter-spacing:.5px;
+    padding:3px 14px;border-radius:10px;background:#fff;
+  }
+  .node .badge{color:var(--green);border:2px solid var(--green-bd);}
+  .npm  .badge{color:var(--blue); border:2px solid var(--blue-bd);}
+  .npx  .badge{color:var(--purple);border:2px solid var(--purple-bd);}
+  .role{font-weight:800;font-size:15px;margin-top:6px;}
+  .node .role{color:var(--green-d);} .npm .role{color:var(--blue-d);} .npx .role{color:var(--purple-d);}
+
+  .art{height:128px;margin:6px 0 4px;display:flex;align-items:center;justify-content:center;}
+  .art svg{height:100%;width:auto;display:block;}
+
+  .analogy{font-size:14.5px;font-weight:700;line-height:1.32;}
+  .desc{font-size:13.5px;font-weight:600;color:var(--muted);line-height:1.34;margin-top:7px;flex:1;}
+  .desc b{color:var(--ink);font-weight:800;}
+
+  .ex{
+    background:var(--term);border-radius:10px;padding:9px 12px;margin-top:8px;
+    font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+    font-size:13.5px;color:#7ed47e;font-weight:700;
+  }
+  .ex .a{color:#cdd6df;font-weight:500;}
+  .ex-note{font-size:12px;font-weight:600;color:var(--muted);margin-top:5px;line-height:1.3;}
+
+  /* connector */
+  .link{width:78px;flex:0 0 78px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
+  .link .lbl{font-size:12px;font-weight:800;text-align:center;line-height:1.15;}
+  .link.a .lbl{color:var(--green-d);} .link.b .lbl{color:var(--blue-d);}
+  .link svg{width:60px;height:22px;}
+
+  /* animations */
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .wheel{transform-box:fill-box;transform-origin:center;animation:spin 1.8s linear infinite;}
+  @keyframes dash{0%,100%{opacity:.2;transform:translateX(0);}50%{opacity:.85;transform:translateX(-7px);}}
+  .speed{transform-box:fill-box;animation:dash 1.4s ease-in-out infinite;}
+  .speed:nth-of-type(2){animation-delay:.15s;} .speed:nth-of-type(3){animation-delay:.3s;}
+  @keyframes nudge{0%,100%{transform:translateX(0);}50%{transform:translateX(5px);}}
+  .arrow{animation:nudge 1.6s ease-in-out infinite;}
+  @media (prefers-reduced-motion:reduce){.wheel,.speed,.arrow{animation:none !important;}}
+</style>
+</head>
+<body>
+<div class=&quot;slide-wrap&quot;>
+<div class=&quot;slide&quot;>
+
+  <div class=&quot;title&quot;><span class=&quot;g&quot;>node</span> · <span class=&quot;b&quot;>npm</span> · <span class=&quot;p&quot;>npx</span> – das Liefer-Team</div>
+
+  <div class=&quot;row&quot;>
+
+    <!-- ================= NODE ================= -->
+    <div class=&quot;col node&quot;>
+      <div class=&quot;badge&quot;>NODE</div>
+      <div class=&quot;role&quot;>Die Laufzeit (Runtime)</div>
+      <div class=&quot;art&quot;>
+        <!-- green delivery van -->
+        <svg viewBox=&quot;0 0 230 132&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;>
+          <ellipse cx=&quot;115&quot; cy=&quot;120&quot; rx=&quot;98&quot; ry=&quot;7&quot; fill=&quot;#000&quot; opacity=&quot;.06&quot;/>
+          <rect x=&quot;62&quot; y=&quot;26&quot; width=&quot;152&quot; height=&quot;68&quot; rx=&quot;9&quot; fill=&quot;#6aa85a&quot; stroke=&quot;var(--green-d)&quot; stroke-width=&quot;3&quot;/>
+          <path d=&quot;M62 38 H22 q-9 0 -11 9 L4 80 q-1 9 8 9 H62 Z&quot; fill=&quot;#6aa85a&quot; stroke=&quot;var(--green-d)&quot; stroke-width=&quot;3&quot;/>
+          <path d=&quot;M26 46 H54 V66 H11 L17 51 q1 -5 9 -5 Z&quot; fill=&quot;#bcd6ee&quot; stroke=&quot;var(--green-d)&quot; stroke-width=&quot;2&quot;/>
+          <rect x=&quot;4&quot; y=&quot;80&quot; width=&quot;13&quot; height=&quot;9&quot; rx=&quot;2&quot; fill=&quot;#e0a90c&quot;/>
+          <text x=&quot;138&quot; y=&quot;70&quot; text-anchor=&quot;middle&quot; font-size=&quot;27&quot; font-weight=&quot;800&quot; fill=&quot;#f0fbe8&quot;>node</text>
+          <circle cx=&quot;56&quot; cy=&quot;98&quot; r=&quot;16&quot; fill=&quot;#2f3742&quot;/>
+          <g class=&quot;wheel&quot; style=&quot;transform-origin:56px 98px&quot;><circle cx=&quot;56&quot; cy=&quot;98&quot; r=&quot;16&quot; fill=&quot;none&quot; stroke=&quot;#1d232b&quot; stroke-width=&quot;3&quot;/><circle cx=&quot;56&quot; cy=&quot;98&quot; r=&quot;5&quot; fill=&quot;#6b7480&quot;/><line x1=&quot;56&quot; y1=&quot;84&quot; x2=&quot;56&quot; y2=&quot;112&quot; stroke=&quot;#6b7480&quot; stroke-width=&quot;2.5&quot;/><line x1=&quot;42&quot; y1=&quot;98&quot; x2=&quot;70&quot; y2=&quot;98&quot; stroke=&quot;#6b7480&quot; stroke-width=&quot;2.5&quot;/></g>
+          <circle cx=&quot;172&quot; cy=&quot;98&quot; r=&quot;16&quot; fill=&quot;#2f3742&quot;/>
+          <g class=&quot;wheel&quot; style=&quot;transform-origin:172px 98px&quot;><circle cx=&quot;172&quot; cy=&quot;98&quot; r=&quot;16&quot; fill=&quot;none&quot; stroke=&quot;#1d232b&quot; stroke-width=&quot;3&quot;/><circle cx=&quot;172&quot; cy=&quot;98&quot; r=&quot;5&quot; fill=&quot;#6b7480&quot;/><line x1=&quot;172&quot; y1=&quot;84&quot; x2=&quot;172&quot; y2=&quot;112&quot; stroke=&quot;#6b7480&quot; stroke-width=&quot;2.5&quot;/><line x1=&quot;158&quot; y1=&quot;98&quot; x2=&quot;186&quot; y2=&quot;98&quot; stroke=&quot;#6b7480&quot; stroke-width=&quot;2.5&quot;/></g>
+        </svg>
+      </div>
+      <div class=&quot;analogy&quot;>Wie der Lieferwagen, der JavaScript ausführen kann.</div>
+      <div class=&quot;desc&quot;>Einmal auf dem Rechner installiert. Damit laufen deine <b>JavaScript-Programme</b>.</div>
+      <div class=&quot;ex&quot;>node <span class=&quot;a&quot;>app.js</span></div>
+      <div class=&quot;ex-note&quot;>Führt deine JS-Datei mit Node.js aus.</div>
+    </div>
+
+    <!-- link -->
+    <div class=&quot;link a&quot;>
+      <div class=&quot;lbl&quot;>nutzt npm</div>
+      <svg class=&quot;arrow&quot; viewBox=&quot;0 0 60 22&quot;><path d=&quot;M2 11 H46&quot; stroke=&quot;var(--green-d)&quot; stroke-width=&quot;5&quot; stroke-linecap=&quot;round&quot;/><path d=&quot;M40 3 L56 11 L40 19 Z&quot; fill=&quot;var(--green-d)&quot;/></svg>
+    </div>
+
+    <!-- ================= NPM ================= -->
+    <div class=&quot;col npm&quot;>
+      <div class=&quot;badge&quot;>npm</div>
+      <div class=&quot;role&quot;>Der Paketmanager</div>
+      <div class=&quot;art&quot;>
+        <!-- blue warehouse with packages -->
+        <svg viewBox=&quot;0 0 230 132&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;>
+          <ellipse cx=&quot;115&quot; cy=&quot;122&quot; rx=&quot;96&quot; ry=&quot;7&quot; fill=&quot;#000&quot; opacity=&quot;.06&quot;/>
+          <path d=&quot;M22 46 L115 14 L208 46 Z&quot; fill=&quot;#b6cdec&quot; stroke=&quot;var(--blue-d)&quot; stroke-width=&quot;3&quot; stroke-linejoin=&quot;round&quot;/>
+          <rect x=&quot;34&quot; y=&quot;46&quot; width=&quot;162&quot; height=&quot;72&quot; fill=&quot;#9fbbe0&quot; stroke=&quot;var(--blue-d)&quot; stroke-width=&quot;3&quot;/>
+          <rect x=&quot;78&quot; y=&quot;24&quot; width=&quot;74&quot; height=&quot;22&quot; rx=&quot;4&quot; fill=&quot;#cb3837&quot;/>
+          <text x=&quot;115&quot; y=&quot;41&quot; text-anchor=&quot;middle&quot; font-size=&quot;17&quot; font-weight=&quot;900&quot; fill=&quot;#fff&quot; font-family=&quot;Nunito&quot;>npm</text>
+          <rect x=&quot;70&quot; y=&quot;60&quot; width=&quot;90&quot; height=&quot;58&quot; fill=&quot;#1f2733&quot;/>
+          <!-- package boxes inside door -->
+          <g stroke=&quot;#8a6a3f&quot; stroke-width=&quot;1.5&quot;>
+            <rect x=&quot;78&quot; y=&quot;92&quot; width=&quot;26&quot; height=&quot;22&quot; fill=&quot;#c79a63&quot;/>
+            <rect x=&quot;106&quot; y=&quot;92&quot; width=&quot;26&quot; height=&quot;22&quot; fill=&quot;#bb8e57&quot;/>
+            <rect x=&quot;134&quot; y=&quot;92&quot; width=&quot;20&quot; height=&quot;22&quot; fill=&quot;#c79a63&quot;/>
+            <rect x=&quot;90&quot; y=&quot;70&quot; width=&quot;26&quot; height=&quot;22&quot; fill=&quot;#bb8e57&quot;/>
+            <rect x=&quot;118&quot; y=&quot;70&quot; width=&quot;26&quot; height=&quot;22&quot; fill=&quot;#c79a63&quot;/>
+          </g>
+          <g fill=&quot;#5b4226&quot; font-family=&quot;Nunito&quot; font-weight=&quot;800&quot; font-size=&quot;7&quot; text-anchor=&quot;middle&quot;>
+            <text x=&quot;91&quot; y=&quot;106&quot;>express</text>
+            <text x=&quot;119&quot; y=&quot;106&quot;>react</text>
+            <text x=&quot;103&quot; y=&quot;84&quot;>lodash</text>
+          </g>
+        </svg>
+      </div>
+      <div class=&quot;analogy&quot;>Wie das Versandzentrum (Registry), das Pakete verwaltet.</div>
+      <div class=&quot;desc&quot;>Hier findest und installierst du Pakete (z.&nbsp;B. <b>express, react, lodash</b>) für deine Projekte.</div>
+      <div class=&quot;ex&quot;>npm <span class=&quot;a&quot;>install express</span></div>
+      <div class=&quot;ex-note&quot;>Holt das Paket „express&quot; in dein Projekt.</div>
+    </div>
+
+    <!-- link -->
+    <div class=&quot;link b&quot;>
+      <div class=&quot;lbl&quot;>nutzt npx</div>
+      <svg class=&quot;arrow&quot; viewBox=&quot;0 0 60 22&quot;><path d=&quot;M2 11 H46&quot; stroke=&quot;var(--blue-d)&quot; stroke-width=&quot;5&quot; stroke-linecap=&quot;round&quot;/><path d=&quot;M40 3 L56 11 L40 19 Z&quot; fill=&quot;var(--blue-d)&quot;/></svg>
+    </div>
+
+    <!-- ================= NPX ================= -->
+    <div class=&quot;col npx&quot;>
+      <div class=&quot;badge&quot;>npx</div>
+      <div class=&quot;role&quot;>Der Paket-Ausführer</div>
+      <div class=&quot;art&quot;>
+        <!-- purple courier scooter -->
+        <svg viewBox=&quot;0 0 230 132&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;>
+          <ellipse cx=&quot;118&quot; cy=&quot;120&quot; rx=&quot;96&quot; ry=&quot;7&quot; fill=&quot;#000&quot; opacity=&quot;.06&quot;/>
+          <!-- speed lines -->
+          <line class=&quot;speed&quot; x1=&quot;6&quot;  y1=&quot;50&quot; x2=&quot;40&quot; y2=&quot;50&quot; stroke=&quot;#9a86c9&quot; stroke-width=&quot;5&quot; stroke-linecap=&quot;round&quot;/>
+          <line class=&quot;speed&quot; x1=&quot;2&quot;  y1=&quot;68&quot; x2=&quot;34&quot; y2=&quot;68&quot; stroke=&quot;#9a86c9&quot; stroke-width=&quot;5&quot; stroke-linecap=&quot;round&quot;/>
+          <line class=&quot;speed&quot; x1=&quot;8&quot;  y1=&quot;86&quot; x2=&quot;38&quot; y2=&quot;86&quot; stroke=&quot;#9a86c9&quot; stroke-width=&quot;5&quot; stroke-linecap=&quot;round&quot;/>
+          <!-- delivery box on back -->
+          <rect x=&quot;44&quot; y=&quot;30&quot; width=&quot;52&quot; height=&quot;46&quot; rx=&quot;7&quot; fill=&quot;#7c5bbf&quot; stroke=&quot;var(--purple-d)&quot; stroke-width=&quot;3&quot;/>
+          <text x=&quot;70&quot; y=&quot;61&quot; text-anchor=&quot;middle&quot; font-size=&quot;20&quot; font-weight=&quot;800&quot; fill=&quot;#fff&quot; font-family=&quot;Nunito&quot;>npx</text>
+          <!-- scooter body -->
+          <path d=&quot;M70 96 q-6 -34 26 -34 H150 q22 0 26 22&quot; fill=&quot;none&quot; stroke=&quot;var(--purple-d)&quot; stroke-width=&quot;3&quot;/>
+          <path d=&quot;M96 64 q34 -2 44 30 H88 q-10 -22 8 -30 Z&quot; fill=&quot;#9a7fd4&quot; stroke=&quot;var(--purple-d)&quot; stroke-width=&quot;3&quot;/>
+          <!-- front shield + handlebar -->
+          <path d=&quot;M168 40 q14 4 12 50&quot; fill=&quot;none&quot; stroke=&quot;#9a7fd4&quot; stroke-width=&quot;9&quot; stroke-linecap=&quot;round&quot;/>
+          <path d=&quot;M168 40 h16&quot; stroke=&quot;var(--purple-d)&quot; stroke-width=&quot;6&quot; stroke-linecap=&quot;round&quot;/>
+          <!-- wheels -->
+          <circle cx=&quot;78&quot; cy=&quot;100&quot; r=&quot;17&quot; fill=&quot;#2f3742&quot;/>
+          <g class=&quot;wheel&quot; style=&quot;transform-origin:78px 100px&quot;><circle cx=&quot;78&quot; cy=&quot;100&quot; r=&quot;17&quot; fill=&quot;none&quot; stroke=&quot;#1d232b&quot; stroke-width=&quot;3&quot;/><circle cx=&quot;78&quot; cy=&quot;100&quot; r=&quot;5&quot; fill=&quot;#6b7480&quot;/><line x1=&quot;78&quot; y1=&quot;85&quot; x2=&quot;78&quot; y2=&quot;115&quot; stroke=&quot;#6b7480&quot; stroke-width=&quot;2.5&quot;/><line x1=&quot;63&quot; y1=&quot;100&quot; x2=&quot;93&quot; y2=&quot;100&quot; stroke=&quot;#6b7480&quot; stroke-width=&quot;2.5&quot;/></g>
+          <circle cx=&quot;176&quot; cy=&quot;100&quot; r=&quot;17&quot; fill=&quot;#2f3742&quot;/>
+          <g class=&quot;wheel&quot; style=&quot;transform-origin:176px 100px&quot;><circle cx=&quot;176&quot; cy=&quot;100&quot; r=&quot;17&quot; fill=&quot;none&quot; stroke=&quot;#1d232b&quot; stroke-width=&quot;3&quot;/><circle cx=&quot;176&quot; cy=&quot;100&quot; r=&quot;5&quot; fill=&quot;#6b7480&quot;/><line x1=&quot;176&quot; y1=&quot;85&quot; x2=&quot;176&quot; y2=&quot;115&quot; stroke=&quot;#6b7480&quot; stroke-width=&quot;2.5&quot;/><line x1=&quot;161&quot; y1=&quot;100&quot; x2=&quot;191&quot; y2=&quot;100&quot; stroke=&quot;#6b7480&quot; stroke-width=&quot;2.5&quot;/></g>
+        </svg>
+      </div>
+      <div class=&quot;analogy&quot;>Wie der Kurierdienst, der ein Paket bringt und sofort ausführt.</div>
+      <div class=&quot;desc&quot;>Lädt ein Paket <b>kurzzeitig</b> herunter und führt es direkt aus – ohne dauerhafte Installation.</div>
+      <div class=&quot;ex&quot;>npx <span class=&quot;a&quot;>create-vite@latest</span></div>
+      <div class=&quot;ex-note&quot;>Lädt create-vite kurz und startet es sofort.</div>
+    </div>
+
+  </div>
+</div>
+</div>
+</body>
+</html>
+"></iframe>
+  </div>
+
+  <div class="bar">
+    <button class="nav" id="prev" title="Zurück (←)">‹</button>
+    <div class="count" id="count">1 / 4</div>
+    <div class="dots" id="dots">
+      <button class="dot active" data-i="0" title="Code ↔ UI"></button>
+<button class="dot" data-i="1" title="Befehls-Anatomie"></button>
+<button class="dot" data-i="2" title="Node.js"></button>
+<button class="dot" data-i="3" title="node · npm · npx"></button>
+    </div>
+    <button class="nav" id="next" title="Weiter (→)">›</button>
+    <button class="fs" id="fs" title="Vollbild (F)">⛶</button>
+  </div>
+  <div class="hint">Pfeiltasten ← → zum Blättern · F für Vollbild</div>
+
+<script>
+  var n = 4;
+  var cur = 0;
+  var frames = document.querySelectorAll('.frame');
+  var dots = document.querySelectorAll('.dot');
+  var count = document.getElementById('count');
+  var prev = document.getElementById('prev');
+  var next = document.getElementById('next');
+
+  function show(i){
+    cur = Math.max(0, Math.min(n - 1, i));
+    frames.forEach(function(f, k){ f.classList.toggle('active', k === cur); });
+    dots.forEach(function(d, k){ d.classList.toggle('active', k === cur); });
+    count.textContent = (cur + 1) + ' / ' + n;
+    prev.disabled = cur === 0;
+    next.disabled = cur === n - 1;
+  }
+  prev.addEventListener('click', function(){ show(cur - 1); });
+  next.addEventListener('click', function(){ show(cur + 1); });
+  dots.forEach(function(d){ d.addEventListener('click', function(){ show(+d.dataset.i); }); });
+
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'ArrowRight' || e.key === 'PageDown'){ show(cur + 1); }
+    else if(e.key === 'ArrowLeft' || e.key === 'PageUp'){ show(cur - 1); }
+    else if(e.key === 'Home'){ show(0); }
+    else if(e.key === 'End'){ show(n - 1); }
+    else if(e.key === 'f' || e.key === 'F'){ toggleFs(); }
+  });
+
+  function toggleFs(){
+    if(!document.fullscreenElement){ document.documentElement.requestFullscreen(); }
+    else{ document.exitFullscreen(); }
+  }
+  document.getElementById('fs').addEventListener('click', toggleFs);
+
+  show(0);
+</script>
+</body>
+</html>
